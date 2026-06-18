@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#315f5a">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="A calm, touch-friendly collection of four puzzle games that can be installed on a phone.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Puzzle Garden">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="icon" href="icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+  <title>Puzzle Garden</title>
+</head>
+<body>
+  <a class="skip-link" href="#app">Skip to the game</a>
+
+  <header class="app-header">
+    <button id="homeButton" class="icon-button" type="button" aria-label="Return to the game menu" title="Game menu" hidden>⌂</button>
+    <div class="header-title-wrap">
+      <div class="brand-mark" aria-hidden="true">✦</div>
+      <div>
+        <h1 id="pageTitle">Puzzle Garden</h1>
+        <p id="pageSubtitle">Four calm games, one simple website</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="installButton" class="icon-button install-header-button" type="button" aria-label="Install Puzzle Garden" title="Install app" hidden>⇩</button>
+      <button id="textSizeButton" class="icon-button" type="button" aria-pressed="false" aria-label="Use larger text" title="Larger text">A+</button>
+      <button id="soundButton" class="icon-button" type="button" aria-pressed="true" aria-label="Turn sound off" title="Sound on">♪</button>
+    </div>
+  </header>
+
+  <main id="app" tabindex="-1" aria-live="off"></main>
+
+  <dialog id="installDialog" class="install-dialog" aria-labelledby="installDialogTitle">
+    <div class="install-dialog-content">
+      <div class="install-dialog-icon" aria-hidden="true">✦</div>
+      <h2 id="installDialogTitle">Install Puzzle Garden</h2>
+      <div id="installDialogInstructions"></div>
+      <form method="dialog">
+        <button class="primary-button" value="close" type="submit">Got it</button>
+      </form>
+    </div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div id="celebration" class="celebration" aria-hidden="true"></div>
+
+  <noscript>
+    <section class="panel noscript-panel">
+      <h2>JavaScript is required</h2>
+      <p>Puzzle Garden runs entirely in your browser and needs JavaScript enabled.</p>
+    </section>
+  </noscript>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

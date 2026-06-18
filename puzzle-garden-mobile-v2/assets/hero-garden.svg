@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="t d">
+<title id="t">Puzzle Garden illustration</title><desc id="d">Puzzle tiles arranged over rolling garden hills.</desc>
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#dceae6"/><stop offset="1" stop-color="#f4e4c9"/></linearGradient></defs>
+<rect width="640" height="420" rx="42" fill="url(#sky)"/>
+<path d="M0 285Q120 205 250 285t250 0q70-45 140-10v145H0z" fill="#7fa866"/>
+<path d="M0 340q130-80 270 0t270 0q55-35 100-12v92H0z" fill="#315f5a"/>
+<g transform="translate(96 74) rotate(-5)"><rect width="116" height="116" rx="25" fill="#fffdf8" stroke="#315f5a" stroke-width="7"/><text x="58" y="78" text-anchor="middle" font-family="system-ui,sans-serif" font-size="60" font-weight="800" fill="#315f5a">7</text></g>
+<g transform="translate(238 47) rotate(4)"><rect width="116" height="116" rx="25" fill="#fffdf8" stroke="#b2782f" stroke-width="7"/><path d="M58 23l10 24 26 3-20 17 6 26-22-13-22 13 6-26-20-17 26-3z" fill="#f0be66"/></g>
+<g transform="translate(380 86) rotate(-3)"><rect width="116" height="116" rx="25" fill="#fffdf8" stroke="#315f5a" stroke-width="7"/><g fill="#6da99d"><rect x="25" y="28" width="28" height="28" rx="6"/><rect x="53" y="28" width="28" height="28" rx="6"/><rect x="53" y="56" width="28" height="28" rx="6"/></g></g>
+<g fill="#f5d58a" stroke="#315f5a" stroke-width="5"><circle cx="92" cy="329" r="19"/><circle cx="525" cy="306" r="22"/><circle cx="574" cy="357" r="17"/></g>
+<g stroke="#315f5a" stroke-width="6" stroke-linecap="round"><path d="M92 348v36M525 328v50M574 374v29"/></g>
+</svg>

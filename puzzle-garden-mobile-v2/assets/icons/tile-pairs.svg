@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="t">
+<title id="t">Tile Pairs icon</title>
+<rect x="8" y="8" width="112" height="112" rx="28" fill="#f4e4c9"/>
+<g transform="rotate(-8 49 63)"><rect x="22" y="28" width="54" height="70" rx="13" fill="#fffdf8" stroke="#8e7552" stroke-width="6"/><path d="M49 45c-17 9-16 27 0 37 16-10 17-28 0-37z" fill="#7fa866"/><path d="M49 50v27" stroke="#315f5a" stroke-width="4"/></g>
+<g transform="rotate(8 79 67)"><rect x="52" y="32" width="54" height="70" rx="13" fill="#fffdf8" stroke="#8e7552" stroke-width="6"/><path d="M79 49c-17 9-16 27 0 37 16-10 17-28 0-37z" fill="#7fa866"/><path d="M79 54v27" stroke="#315f5a" stroke-width="4"/></g>
+</svg>

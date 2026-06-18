@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="t">
+<title id="t">Falling Shapes icon</title>
+<rect x="8" y="8" width="112" height="112" rx="28" fill="#dceae6"/>
+<rect x="25" y="18" width="78" height="92" rx="13" fill="#172522" stroke="#315f5a" stroke-width="6"/>
+<g stroke="#f5f1e8" stroke-width="2">
+<rect x="39" y="35" width="18" height="18" rx="4" fill="#7194bf"/><rect x="57" y="35" width="18" height="18" rx="4" fill="#7194bf"/><rect x="57" y="53" width="18" height="18" rx="4" fill="#7194bf"/>
+<rect x="39" y="78" width="18" height="18" rx="4" fill="#d4964c"/><rect x="57" y="78" width="18" height="18" rx="4" fill="#d4964c"/><rect x="75" y="78" width="18" height="18" rx="4" fill="#d4964c"/>
+</g>
+</svg>

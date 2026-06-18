@@ -1,0 +1,54 @@
+{
+  "name": "Puzzle Garden",
+  "short_name": "Puzzles",
+  "description": "A calm, touch-friendly collection of four puzzle games.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#f5f1e8",
+  "theme_color": "#315f5a",
+  "orientation": "any",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Number Grid",
+      "short_name": "Sudoku",
+      "url": "./#/sudoku",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Tile Pairs",
+      "short_name": "Tiles",
+      "url": "./#/tiles",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Falling Shapes",
+      "short_name": "Shapes",
+      "url": "./#/falling",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Crate Trail",
+      "short_name": "Crates",
+      "url": "./#/crates",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}
