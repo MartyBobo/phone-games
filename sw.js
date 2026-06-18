@@ -2,6 +2,7 @@ const CACHE_NAME = "puzzle-garden-mobile-v3-campaign";
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./404.html",
   "./styles.css",
   "./app.js",
   "./campaign.json",
