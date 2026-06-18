@@ -1,11 +1,11 @@
-# Puzzle Garden — touch-first mobile PWA
+﻿# Puzzle Garden - touch-first mobile PWA
 
 Puzzle Garden is a static Progressive Web App containing four original puzzle games:
 
-- **Number Grid** — Sudoku-style number placement.
-- **Tile Pairs** — layered matching inspired by Mahjong Solitaire.
-- **Falling Shapes** — an original falling-block game.
-- **Crate Trail** — an original crate-tipping path puzzle.
+- **Number Grid** - Sudoku-style number placement.
+- **Tile Pairs** - layered matching inspired by Mahjong Solitaire.
+- **Falling Shapes** - an original falling-block game.
+- **Crate Trail** - an original crate-tipping path puzzle.
 
 This version adapts the uploaded game for phone and tablet browsers. A single hosted website works on iPhone, iPad, Android, and desktop without distributing an Android application file.
 
@@ -32,7 +32,7 @@ The app now includes:
 
 ## Run locally
 
-From this folder, run:
+From the repository root, run:
 
 ```bash
 python -m http.server 8080
@@ -48,9 +48,9 @@ Opening `index.html` directly runs the games, but PWA installation and the servi
 
 ## Publish it
 
-Upload the complete folder to a static HTTPS host. No build process or backend is required for this mobile version.
+Upload the repository root to a static HTTPS host. No build process or backend is required for this mobile version.
 
-Suitable static hosts include GitHub Pages, Cloudflare Pages, Netlify, or an ordinary HTTPS web server. Keep all paths and filenames together.
+For GitHub Pages, configure the site to publish from the `main` branch root so `index.html` is served at `https://martybobo.github.io/phone-games/`. Suitable static hosts also include Cloudflare Pages, Netlify, or an ordinary HTTPS web server. Keep all paths and filenames together.
 
 ## Install on iPhone or iPad
 
@@ -98,64 +98,26 @@ Tap a highlighted reachable tower, then tap an enabled direction. The direction 
 - Screen-reader labels on interactive board elements.
 - Reduced-motion support through the operating-system preference.
 - State is not communicated by color alone.
-- The browser’s normal pinch-to-zoom remains available.
-
-## Artwork workflow
-
-- `assets/` contains original SVG interface artwork used by the current app.
-- `ARTWORK_PROMPTS.md` contains complete character-sheet and texture-atlas prompts for a richer image-generation pass.
-- `tools/slice_artwork.py` crops generated 2×2 or 4×2 image sheets, removes an optional solid background, trims transparency, adds safe padding, resizes, and exports production PNG or WebP files.
-
-Example:
-
-```bash
-python tools/slice_artwork.py characters generated-seedling.png \
-  assets/avatars/bee assets/avatars/snail assets/avatars/robin assets/avatars/hedgehog
-```
-
-Pillow is required for the artwork processor:
-
-```bash
-python -m pip install pillow
-```
-
-## Mobile test
-
-Install Playwright for Python, then run:
-
-```bash
-python -m pip install -r tests/requirements.txt
-python -m playwright install chromium
-python tests/mobile_smoke.py
-```
-
-See `TEST_REPORT.md` and `MOBILE_PREVIEW.png` for the completed test run.
+- The browser's normal pinch-to-zoom remains available.
 
 ## File structure
 
 ```text
-Puzzle Garden/
-├── index.html
-├── styles.css
-├── app.js
-├── manifest.webmanifest
-├── sw.js
-├── icon-192.png
-├── icon-512.png
-├── apple-touch-icon.png
-├── assets/
-│   ├── hero-garden.svg
-│   ├── icons/
-│   └── textures/
-├── ARTWORK_PROMPTS.md
-├── tools/
-│   └── slice_artwork.py
-├── tests/
-│   ├── mobile_smoke.py
-│   └── requirements.txt
-├── TEST_REPORT.md
-└── MOBILE_PREVIEW.png
+phone-games/
+|-- index.html
+|-- styles.css
+|-- app.js
+|-- manifest.webmanifest
+|-- sw.js
+|-- icon-192.png
+|-- icon-512.png
+|-- apple-touch-icon.png
+`-- assets/
+    |-- hero-garden.svg
+    |-- icons/
+    `-- textures/
 ```
+
 
 ## Data and account limitation
 
