@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Cloud Orchard">
+  <rect width="640" height="360" fill="#e9f5ff"/>
+  <g fill="#ffffff" opacity=".95">
+    <ellipse cx="130" cy="86" rx="76" ry="28"/>
+    <ellipse cx="201" cy="85" rx="50" ry="20"/>
+    <ellipse cx="430" cy="72" rx="90" ry="30"/>
+    <ellipse cx="514" cy="72" rx="56" ry="22"/>
+  </g>
+  <path d="M0 251c83-43 165-48 245-15 88 37 176 34 264-10 51-26 95-30 131-12v146H0z" fill="#89b987"/>
+  <g fill="#315f5a">
+    <rect x="112" y="162" width="26" height="130" rx="13"/>
+    <rect x="308" y="142" width="30" height="151" rx="15"/>
+    <rect x="492" y="170" width="24" height="122" rx="12"/>
+  </g>
+  <g fill="#b7d88c">
+    <circle cx="124" cy="151" r="55"/>
+    <circle cx="323" cy="130" r="67"/>
+    <circle cx="504" cy="158" r="52"/>
+  </g>
+  <g fill="#f1b65b">
+    <circle cx="102" cy="161" r="10"/>
+    <circle cx="342" cy="105" r="11"/>
+    <circle cx="525" cy="167" r="9"/>
+  </g>
+</svg>

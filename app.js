@@ -207,6 +207,175 @@
     return key.split(",").map(Number);
   }
 
+  const GAME_ORDER = ["sudoku", "tiles", "falling", "crates"];
+  const CAMPAIGN_COMPLETED_KEY = "pg-campaign-completed";
+  const CAMPAIGN_POINT_BASE = 125;
+
+  let campaignCatalog = {
+    ready: false,
+    error: null,
+    generatedAt: "",
+    worlds: [],
+    levels: [],
+    worldsById: new Map(),
+    levelsByGame: new Map(),
+    levelsByWorld: new Map()
+  };
+
+  function escapeHTML(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
+  function safeWorldArtPath(value) {
+    const path = String(value || "");
+    return /^assets\/worlds\/[a-z0-9-]+\.svg$/.test(path) ? path : "";
+  }
+
+  function safeHexColor(value, fallback) {
+    const color = String(value || "");
+    return /^#[0-9a-fA-F]{6}$/.test(color) ? color : fallback;
+  }
+
+  function normalizeCampaign(raw) {
+    if (!raw || !Array.isArray(raw.worlds) || !Array.isArray(raw.levels)) {
+      throw new Error("Campaign catalog is missing worlds or levels.");
+    }
+
+    const worlds = raw.worlds
+      .map((world) => ({
+        id: String(world.id || ""),
+        order: Number(world.order) || 0,
+        name: String(world.name || world.id || "World"),
+        description: String(world.description || ""),
+        unlockPoints: Number(world.unlockPoints) || 0,
+        unlockCompletions: Number(world.unlockCompletions) || 0,
+        multiplier: Number(world.multiplier) || 1,
+        art: safeWorldArtPath(world.art),
+        palette: Array.isArray(world.palette)
+          ? world.palette.map((color, index) => safeHexColor(color, ["#315f5a", "#9fc995", "#f5d58a", "#fff8e8"][index] || "#fff8e8"))
+          : []
+      }))
+      .filter((world) => world.id)
+      .sort((a, b) => a.order - b.order);
+
+    const worldsById = new Map(worlds.map((world) => [world.id, world]));
+    const levels = raw.levels
+      .map((level) => {
+        const world = worldsById.get(String(level.worldId || ""));
+        return {
+          ...level,
+          id: String(level.id || ""),
+          gameId: String(level.gameId || ""),
+          worldId: String(level.worldId || ""),
+          world,
+          worldOrder: Number(level.worldOrder || world?.order || 0),
+          levelNumber: Number(level.levelNumber) || 0,
+          globalNumber: Number(level.globalNumber) || 0,
+          name: String(level.name || "Level"),
+          difficulty: String(level.difficulty || "Puzzle"),
+          par: Number(level.par) || 0,
+          data: level.data || {},
+          solution: level.solution || {}
+        };
+      })
+      .filter((level) => level.id && GAME_META[level.gameId] && level.world)
+      .sort((a, b) =>
+        a.worldOrder - b.worldOrder ||
+        GAME_ORDER.indexOf(a.gameId) - GAME_ORDER.indexOf(b.gameId) ||
+        a.levelNumber - b.levelNumber
+      );
+
+    const levelsByGame = new Map(GAME_ORDER.map((gameId) => [gameId, []]));
+    const levelsByWorld = new Map(worlds.map((world) => [world.id, []]));
+    levels.forEach((level) => {
+      levelsByGame.get(level.gameId)?.push(level);
+      levelsByWorld.get(level.worldId)?.push(level);
+    });
+
+    const expectedTotal = worlds.length * GAME_ORDER.length * 10;
+    if (levels.length !== expectedTotal) {
+      throw new Error(`Campaign catalog has ${levels.length} levels; expected ${expectedTotal}.`);
+    }
+
+    return {
+      ready: true,
+      error: null,
+      generatedAt: String(raw.generatedAt || ""),
+      worlds,
+      levels,
+      worldsById,
+      levelsByGame,
+      levelsByWorld
+    };
+  }
+
+  async function loadCampaignCatalog() {
+    try {
+      const response = await fetch("campaign.json", { cache: "no-cache" });
+      if (!response.ok) throw new Error(`Campaign request failed with ${response.status}.`);
+      campaignCatalog = normalizeCampaign(await response.json());
+    } catch (error) {
+      campaignCatalog = { ...campaignCatalog, ready: false, error };
+      console.error("Puzzle Garden campaign failed to load", error);
+    }
+  }
+
+  function campaignCompletedIds() {
+    return new Set(loadJSON(CAMPAIGN_COMPLETED_KEY, []).filter((id) => typeof id === "string"));
+  }
+
+  function saveCampaignCompletedIds(ids) {
+    saveJSON(CAMPAIGN_COMPLETED_KEY, [...ids].sort());
+  }
+
+  function campaignLevelPoints(level) {
+    const multiplier = level.world?.multiplier || 1;
+    return Math.round(CAMPAIGN_POINT_BASE * multiplier);
+  }
+
+  function campaignStats() {
+    const completed = campaignCompletedIds();
+    let points = 0;
+    campaignCatalog.levels.forEach((level) => {
+      if (completed.has(level.id)) points += campaignLevelPoints(level);
+    });
+    return { completed, completedCount: completed.size, points };
+  }
+
+  function isWorldUnlocked(world, stats = campaignStats()) {
+    return stats.completedCount >= world.unlockCompletions && stats.points >= world.unlockPoints;
+  }
+
+  function isLevelUnlocked(level, stats = campaignStats()) {
+    return isWorldUnlocked(level.world, stats);
+  }
+
+  function markCampaignLevelComplete(level) {
+    if (!level?.id) return;
+    const completed = campaignCompletedIds();
+    if (!completed.has(level.id)) {
+      completed.add(level.id);
+      saveCampaignCompletedIds(completed);
+    }
+  }
+
+  function campaignLevelsForGame(gameId, unlockedOnly = false) {
+    const levels = campaignCatalog.levelsByGame.get(gameId) || [];
+    if (!unlockedOnly) return levels;
+    const stats = campaignStats();
+    return levels.filter((level) => isLevelUnlocked(level, stats));
+  }
+
+  function levelOptionLabel(level) {
+    const done = campaignCompletedIds().has(level.id) ? " *" : "";
+    return `${level.globalNumber}. ${level.world.name} - ${level.name}${done}`;
+  }
+
   function announce(message) {
     clearTimeout(toastTimer);
     toast.textContent = message;
@@ -315,6 +484,15 @@
     toast.classList.remove("show");
     window.scrollTo({ top: 0, behavior: "auto" });
 
+    if (!campaignCatalog.ready) {
+      setHeader();
+      renderCampaignUnavailable();
+      app.focus({ preventScroll: true });
+      updateViewportMetrics();
+      updateInstallUi();
+      return;
+    }
+
     const routeName = window.location.hash.replace(/^#\/?/, "");
     if (routeName && GAME_META[routeName]) {
       setHeader(routeName);
@@ -332,7 +510,124 @@
     updateInstallUi();
   }
 
+  function renderCampaignUnavailable() {
+    app.innerHTML = `
+      <section class="panel game-intro">
+        <div>
+          <h2>Puzzle Garden</h2>
+          <p>The campaign catalog could not be loaded. Start this folder with a local web server so the app can fetch campaign.json.</p>
+        </div>
+        <div class="status-pill"><span>Status</span><strong>Offline</strong></div>
+      </section>
+    `;
+  }
+
+  function renderCampaignLoading() {
+    app.innerHTML = `
+      <section class="panel game-intro">
+        <div>
+          <h2>Puzzle Garden</h2>
+          <p>Loading the campaign catalog...</p>
+        </div>
+        <div class="status-pill"><span>Levels</span><strong>240</strong></div>
+      </section>
+    `;
+  }
+
+  function renderCampaignHome() {
+    const stats = campaignStats();
+    const totalLevels = campaignCatalog.levels.length;
+    const progress = totalLevels ? Math.round((stats.completedCount / totalLevels) * 100) : 0;
+
+    app.innerHTML = `
+      <section class="home-hero" aria-labelledby="homeHeading">
+        <div>
+          <h2 id="homeHeading">Puzzle Garden campaign</h2>
+          <p>Explore six puzzle worlds with 240 catalog levels. Progress is saved on this device.</p>
+        </div>
+        <div class="hero-art hero-image" aria-hidden="true">
+          <img src="assets/hero-garden.svg" alt="" width="640" height="420">
+        </div>
+      </section>
+
+      <aside class="home-note install-cta">
+        <span class="home-note-icon" aria-hidden="true">*</span>
+        <div>
+          <strong>Works like an app</strong>
+          <span>Play with your finger, add the website to the Home Screen, and reopen it from its own icon.</span>
+          <span class="phone-tip">Touch controls - Safe-area support - Offline-ready</span>
+        </div>
+        <button id="homeInstallButton" class="primary-button" type="button">Install app</button>
+      </aside>
+
+      <section class="campaign-summary panel" aria-label="Campaign progress">
+        <div><span>Campaign</span><strong>${stats.completedCount}/${totalLevels}</strong></div>
+        <div><span>Points</span><strong>${stats.points}</strong></div>
+        <div><span>Progress</span><strong>${progress}%</strong></div>
+      </section>
+
+      <section class="world-grid" aria-label="Campaign worlds">
+        ${campaignCatalog.worlds.map((world) => {
+          const unlocked = isWorldUnlocked(world, stats);
+          const levels = campaignCatalog.levelsByWorld.get(world.id) || [];
+          const completed = levels.filter((level) => stats.completed.has(level.id)).length;
+          const palette = world.palette.length ? world.palette : ["#315f5a", "#9fc995", "#f5d58a", "#fff8e8"];
+          return `
+            <article class="world-card ${unlocked ? "" : "locked"}" style="--world-a:${escapeHTML(palette[0])};--world-b:${escapeHTML(palette[1])};--world-c:${escapeHTML(palette[2])};">
+              <img src="${escapeHTML(world.art)}" alt="" width="320" height="180">
+              <div class="world-card-body">
+                <div class="world-card-heading">
+                  <div>
+                    <span>World ${world.order}</span>
+                    <h3>${escapeHTML(world.name)}</h3>
+                  </div>
+                  <strong>${completed}/${levels.length}</strong>
+                </div>
+                <p>${escapeHTML(world.description)}</p>
+                <div class="world-actions">
+                  ${GAME_ORDER.map((gameId) => `<button class="world-game-button" type="button" data-game="${gameId}" data-world="${escapeHTML(world.id)}" ${unlocked ? "" : "disabled"}>${escapeHTML(GAME_META[gameId].title)}</button>`).join("")}
+                </div>
+                ${unlocked ? "" : `<p class="world-lock">Unlocks at ${world.unlockCompletions} completions and ${world.unlockPoints} points.</p>`}
+              </div>
+            </article>
+          `;
+        }).join("")}
+      </section>
+
+      <section class="game-grid" aria-label="Puzzle games">
+        ${Object.entries(GAME_META).map(([id, meta]) => `
+          <button class="game-card" type="button" data-game="${id}">
+            <span class="game-card-icon" aria-hidden="true"><img src="${meta.art}" alt="" width="64" height="64"></span>
+            <span>
+              <h3>${escapeHTML(meta.title)}</h3>
+              <p>${escapeHTML(meta.description)}</p>
+            </span>
+            <span class="game-card-arrow" aria-hidden="true">&gt;</span>
+          </button>
+        `).join("")}
+      </section>
+    `;
+
+    app.querySelectorAll("[data-game]").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (button.disabled) return;
+        const worldId = button.dataset.world;
+        if (worldId) {
+          const firstLevel = campaignLevelsForGame(button.dataset.game).find((level) => level.worldId === worldId);
+          if (firstLevel) saveJSON(`pg-${button.dataset.game}-current`, firstLevel.id);
+        }
+        playTone(480);
+        window.location.hash = button.dataset.game;
+      });
+    });
+
+    app.querySelector("#homeInstallButton")?.addEventListener("click", requestInstall);
+    updateInstallUi();
+  }
+
   function renderHome() {
+    renderCampaignHome();
+    return;
     app.innerHTML = `
       <section class="home-hero" aria-labelledby="homeHeading">
         <div>
@@ -453,19 +748,22 @@
     }))
   );
 
-  function sudokuPeerIndexes(index) {
-    const row = Math.floor(index / 9);
-    const col = index % 9;
+  function sudokuPeerIndexes(index, puzzle) {
+    const size = puzzle.size || 9;
+    const boxRows = puzzle.boxRows || 3;
+    const boxCols = puzzle.boxCols || 3;
+    const row = Math.floor(index / size);
+    const col = index % size;
     const peers = new Set();
-    for (let i = 0; i < 9; i += 1) {
-      peers.add(row * 9 + i);
-      peers.add(i * 9 + col);
+    for (let i = 0; i < size; i += 1) {
+      peers.add(row * size + i);
+      peers.add(i * size + col);
     }
-    const boxRow = Math.floor(row / 3) * 3;
-    const boxCol = Math.floor(col / 3) * 3;
-    for (let r = boxRow; r < boxRow + 3; r += 1) {
-      for (let c = boxCol; c < boxCol + 3; c += 1) {
-        peers.add(r * 9 + c);
+    const boxRow = Math.floor(row / boxRows) * boxRows;
+    const boxCol = Math.floor(col / boxCols) * boxCols;
+    for (let r = boxRow; r < boxRow + boxRows; r += 1) {
+      for (let c = boxCol; c < boxCol + boxCols; c += 1) {
+        peers.add(r * size + c);
       }
     }
     peers.delete(index);
@@ -473,9 +771,20 @@
   }
 
   function renderSudoku() {
+    const SUDOKU_PUZZLES = campaignLevelsForGame("sudoku").map((level) => ({
+      ...level,
+      label: levelOptionLabel(level),
+      size: Number(level.data.size) || 9,
+      boxRows: Number(level.data.boxRows) || 3,
+      boxCols: Number(level.data.boxCols) || 3,
+      puzzle: String(level.data.puzzle || ""),
+      solution: String(level.solution.solution || "")
+    })).filter((level) => level.puzzle.length === level.size * level.size && level.solution.length === level.size * level.size);
+    const unlockedSudoku = SUDOKU_PUZZLES.filter((level) => isLevelUnlocked(level));
+    const availableSudoku = unlockedSudoku.length ? unlockedSudoku : SUDOKU_PUZZLES;
     let currentPuzzleId = loadJSON("pg-sudoku-current", SUDOKU_PUZZLES[0].id);
-    if (!SUDOKU_PUZZLES.some((item) => item.id === currentPuzzleId)) {
-      currentPuzzleId = SUDOKU_PUZZLES[0].id;
+    if (!availableSudoku.some((item) => item.id === currentPuzzleId)) {
+      currentPuzzleId = availableSudoku[0].id;
     }
 
     let puzzle = SUDOKU_PUZZLES.find((item) => item.id === currentPuzzleId);
@@ -501,7 +810,7 @@
           <div class="toolbar-group">
             <label class="sr-only" for="sudokuPuzzleSelect">Choose a puzzle</label>
             <select id="sudokuPuzzleSelect" class="control">
-              ${SUDOKU_PUZZLES.map((item) => `<option value="${item.id}">${item.label}</option>`).join("")}
+              ${SUDOKU_PUZZLES.map((item) => `<option value="${item.id}" ${isLevelUnlocked(item) ? "" : "disabled"}>${escapeHTML(item.label)}</option>`).join("")}
             </select>
             <button id="sudokuRandom" class="secondary-button" type="button">New puzzle</button>
           </div>
@@ -513,7 +822,7 @@
         </div>
 
         <div class="panel sudoku-shell">
-          <div id="sudokuGrid" class="sudoku-grid" role="grid" aria-label="9 by 9 Number Grid"></div>
+          <div id="sudokuGrid" class="sudoku-grid" role="grid" aria-label="Number Grid"></div>
           <div id="numberPad" class="number-pad" aria-label="Number pad"></div>
           <div class="compact-toolbar">
             <button id="notesToggle" class="secondary-button toggle-button" type="button" aria-pressed="false">Pencil notes</button>
@@ -544,25 +853,27 @@
     }
 
     function loadState(nextPuzzleId) {
-      puzzle = SUDOKU_PUZZLES.find((item) => item.id === nextPuzzleId) || SUDOKU_PUZZLES[0];
+      puzzle = SUDOKU_PUZZLES.find((item) => item.id === nextPuzzleId && isLevelUnlocked(item)) || availableSudoku[0];
       currentPuzzleId = puzzle.id;
       const saved = loadJSON(`pg-sudoku-${puzzle.id}`, null);
       const givens = puzzle.puzzle.split("");
+      const cellCount = puzzle.size * puzzle.size;
 
-      if (saved && Array.isArray(saved.values) && saved.values.length === 81) {
+      if (saved && Array.isArray(saved.values) && saved.values.length === cellCount) {
         values = saved.values.map((value, index) => givens[index] !== "0" ? givens[index] : String(value || "0"));
-        notes = Array.from({ length: 81 }, (_, index) => new Set(Array.isArray(saved.notes?.[index]) ? saved.notes[index] : []));
+        notes = Array.from({ length: cellCount }, (_, index) => new Set(Array.isArray(saved.notes?.[index]) ? saved.notes[index] : []));
         completed = Boolean(saved.completed);
       } else {
         values = givens;
-        notes = Array.from({ length: 81 }, () => new Set());
+        notes = Array.from({ length: cellCount }, () => new Set());
         completed = false;
       }
 
       selected = values.findIndex((value, index) => value === "0" && givens[index] === "0");
       history = [];
       puzzleSelect.value = puzzle.id;
-      difficultyElement.textContent = puzzle.difficulty;
+      difficultyElement.textContent = `${puzzle.world.name} - ${puzzle.difficulty}`;
+      buildNumberPad();
       renderBoard();
       saveState();
     }
@@ -581,13 +892,14 @@
     }
 
     function removePeerNotes(index, digit) {
-      sudokuPeerIndexes(index).forEach((peerIndex) => notes[peerIndex].delete(digit));
+      sudokuPeerIndexes(index, puzzle).forEach((peerIndex) => notes[peerIndex].delete(digit));
     }
 
     function checkComplete() {
       if (values.join("") === puzzle.solution) {
         if (!completed) celebrate("Number Grid complete!");
         completed = true;
+        markCampaignLevelComplete(puzzle);
       } else {
         completed = false;
       }
@@ -633,14 +945,17 @@
     }
 
     function renderBoard() {
-      const selectedRow = selected >= 0 ? Math.floor(selected / 9) : -1;
-      const selectedCol = selected >= 0 ? selected % 9 : -1;
+      const size = puzzle.size;
+      const selectedRow = selected >= 0 ? Math.floor(selected / size) : -1;
+      const selectedCol = selected >= 0 ? selected % size : -1;
       const selectedValue = selected >= 0 ? values[selected] : "0";
       gridElement.textContent = "";
+      gridElement.style.setProperty("--sudoku-size", String(size));
+      gridElement.setAttribute("aria-label", `${size} by ${size} Number Grid`);
 
       values.forEach((value, index) => {
-        const row = Math.floor(index / 9);
-        const col = index % 9;
+        const row = Math.floor(index / size);
+        const col = index % size;
         const cell = document.createElement("button");
         cell.type = "button";
         cell.className = "sudoku-cell";
@@ -648,10 +963,10 @@
         cell.setAttribute("role", "gridcell");
         cell.setAttribute("aria-label", `Row ${row + 1}, column ${col + 1}${value === "0" ? ", empty" : `, ${value}`}`);
 
-        if (col === 2 || col === 5) cell.classList.add("box-right");
-        if (row === 2 || row === 5) cell.classList.add("box-bottom");
+        if ((col + 1) % puzzle.boxCols === 0 && col !== size - 1) cell.classList.add("box-right");
+        if ((row + 1) % puzzle.boxRows === 0 && row !== size - 1) cell.classList.add("box-bottom");
         if (isGiven(index)) cell.classList.add("given");
-        if (row === selectedRow || col === selectedCol || (Math.floor(row / 3) === Math.floor(selectedRow / 3) && Math.floor(col / 3) === Math.floor(selectedCol / 3))) {
+        if (row === selectedRow || col === selectedCol || (Math.floor(row / puzzle.boxRows) === Math.floor(selectedRow / puzzle.boxRows) && Math.floor(col / puzzle.boxCols) === Math.floor(selectedCol / puzzle.boxCols))) {
           cell.classList.add("related");
         }
         if (selectedValue !== "0" && value === selectedValue) cell.classList.add("same-number");
@@ -663,7 +978,9 @@
         } else if (notes[index].size) {
           const noteGrid = document.createElement("span");
           noteGrid.className = "sudoku-notes";
-          for (let digit = 1; digit <= 9; digit += 1) {
+          noteGrid.style.gridTemplateColumns = `repeat(${puzzle.boxCols}, 1fr)`;
+          noteGrid.style.gridTemplateRows = `repeat(${puzzle.boxRows}, 1fr)`;
+          for (let digit = 1; digit <= size; digit += 1) {
             const note = document.createElement("span");
             note.className = "sudoku-note";
             note.textContent = notes[index].has(String(digit)) ? String(digit) : "";
@@ -689,7 +1006,8 @@
 
     function buildNumberPad() {
       numberPad.textContent = "";
-      for (let digit = 1; digit <= 9; digit += 1) {
+      numberPad.style.setProperty("--pad-columns", String(Math.min(6, puzzle.size)));
+      for (let digit = 1; digit <= puzzle.size; digit += 1) {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "number-button";
@@ -712,8 +1030,9 @@
       nextEmpty.textContent = "Next empty";
       nextEmpty.addEventListener("click", () => {
         const start = selected < 0 ? 0 : selected + 1;
-        for (let offset = 0; offset < 81; offset += 1) {
-          const index = (start + offset) % 81;
+        const cellCount = puzzle.size * puzzle.size;
+        for (let offset = 0; offset < cellCount; offset += 1) {
+          const index = (start + offset) % cellCount;
           if (!isGiven(index) && values[index] === "0") {
             selected = index;
             renderBoard();
@@ -731,14 +1050,14 @@
     });
 
     app.querySelector("#sudokuRandom").addEventListener("click", () => {
-      const sameDifficulty = SUDOKU_PUZZLES.filter((item) => item.difficulty === puzzle.difficulty && item.id !== puzzle.id);
-      loadState((choice(sameDifficulty.length ? sameDifficulty : SUDOKU_PUZZLES)).id);
+      const sameDifficulty = availableSudoku.filter((item) => item.difficulty === puzzle.difficulty && item.id !== puzzle.id);
+      loadState((choice(sameDifficulty.length ? sameDifficulty : availableSudoku)).id);
       playTone(560);
     });
 
     app.querySelector("#sudokuReset").addEventListener("click", () => {
       values = puzzle.puzzle.split("");
-      notes = Array.from({ length: 81 }, () => new Set());
+      notes = Array.from({ length: puzzle.size * puzzle.size }, () => new Set());
       selected = values.findIndex((value) => value === "0");
       history = [];
       completed = false;
@@ -817,15 +1136,14 @@
       if (directions[event.key]) {
         event.preventDefault();
         const [dr, dc] = directions[event.key];
-        const row = selected >= 0 ? Math.floor(selected / 9) : 0;
-        const col = selected >= 0 ? selected % 9 : 0;
-        selected = clamp(row + dr, 0, 8) * 9 + clamp(col + dc, 0, 8);
+        const row = selected >= 0 ? Math.floor(selected / puzzle.size) : 0;
+        const col = selected >= 0 ? selected % puzzle.size : 0;
+        selected = clamp(row + dr, 0, puzzle.size - 1) * puzzle.size + clamp(col + dc, 0, puzzle.size - 1);
         renderBoard();
       }
     }
 
     document.addEventListener("keydown", onKeyDown);
-    buildNumberPad();
     loadState(currentPuzzleId);
     mistakesToggle.setAttribute("aria-pressed", String(showMistakes));
 
@@ -870,8 +1188,8 @@
 
   const TILE_POSITIONS = createTilePositions();
 
-  function tileIsFree(tile, activeSet) {
-    const blockedAbove = TILE_POSITIONS.some((other) =>
+  function tileIsFree(tile, activeSet, positions = TILE_POSITIONS) {
+    const blockedAbove = positions.some((other) =>
       activeSet.has(other.id) &&
       other.layer > tile.layer &&
       other.row === tile.row &&
@@ -879,13 +1197,13 @@
     );
     if (blockedAbove) return false;
 
-    const blockedLeft = TILE_POSITIONS.some((other) =>
+    const blockedLeft = positions.some((other) =>
       activeSet.has(other.id) &&
       other.layer === tile.layer &&
       other.row === tile.row &&
       other.col === tile.col - 1
     );
-    const blockedRight = TILE_POSITIONS.some((other) =>
+    const blockedRight = positions.some((other) =>
       activeSet.has(other.id) &&
       other.layer === tile.layer &&
       other.row === tile.row &&
@@ -895,7 +1213,7 @@
     return !blockedLeft || !blockedRight;
   }
 
-  function buildSolvableTileAssignment(activeIds, pairFaces) {
+  function buildSolvableTileAssignment(activeIds, pairFaces, positions = TILE_POSITIONS) {
     if (activeIds.size !== pairFaces.length * 2) return null;
 
     for (let attempt = 0; attempt < 160; attempt += 1) {
@@ -904,7 +1222,7 @@
       let failed = false;
 
       while (simulated.size > 0) {
-        const free = TILE_POSITIONS.filter((tile) => simulated.has(tile.id) && tileIsFree(tile, simulated));
+        const free = positions.filter((tile) => simulated.has(tile.id) && tileIsFree(tile, simulated, positions));
         if (free.length < 2) {
           failed = true;
           break;
@@ -930,7 +1248,21 @@
     return null;
   }
 
+  function catalogTileFaceLabel(face, theme = 0) {
+    const match = String(face).match(/f(\d+)$/);
+    const index = match ? Number(match[1]) : 0;
+    return TILE_FACES[(theme * 8 + index) % TILE_FACES.length] || String(face);
+  }
+
   function renderTilePairs() {
+    const TILE_LEVELS = campaignLevelsForGame("tiles");
+    const unlockedTiles = TILE_LEVELS.filter((level) => isLevelUnlocked(level));
+    const availableTiles = unlockedTiles.length ? unlockedTiles : TILE_LEVELS;
+    let currentLevelId = loadJSON("pg-tiles-current", availableTiles[0].id);
+    if (!availableTiles.some((level) => level.id === currentLevelId)) currentLevelId = availableTiles[0].id;
+    let level = TILE_LEVELS.find((item) => item.id === currentLevelId) || availableTiles[0];
+    let positions = level.data.positions || [];
+    let completed = false;
     let active = new Set();
     let assignments = new Map();
     let selected = null;
@@ -951,7 +1283,11 @@
 
         <div class="panel toolbar" aria-label="Tile Pairs controls">
           <div class="toolbar-group">
-            <button id="tileNew" class="primary-button" type="button">New board</button>
+            <label class="sr-only" for="tileLevelSelect">Choose a level</label>
+            <select id="tileLevelSelect" class="control">
+              ${TILE_LEVELS.map((item) => `<option value="${item.id}" ${isLevelUnlocked(item) ? "" : "disabled"}>${escapeHTML(levelOptionLabel(item))}</option>`).join("")}
+            </select>
+            <button id="tileNew" class="primary-button" type="button">Reset level</button>
             <button id="tileHint" class="secondary-button" type="button">Hint</button>
             <button id="tileShuffle" class="secondary-button" type="button">Reshuffle</button>
           </div>
@@ -972,23 +1308,26 @@
     `;
 
     const boardElement = app.querySelector("#tileBoard");
+    const levelSelect = app.querySelector("#tileLevelSelect");
     const remainingElement = app.querySelector("#tileRemaining");
     const movesElement = app.querySelector("#tileMoves");
     const freePairsElement = app.querySelector("#tileFreePairs");
 
     function saveState() {
-      saveJSON("pg-tiles-save", {
+      saveJSON(`pg-tiles-${level.id}`, {
         active: [...active],
         assignments: Object.fromEntries(assignments),
         moves,
-        matchedPairs
+        matchedPairs,
+        completed
       });
+      saveJSON("pg-tiles-current", level.id);
     }
 
     function countFreeMatchingPairs() {
       const freeByFace = new Map();
-      TILE_POSITIONS.forEach((tile) => {
-        if (!active.has(tile.id) || !tileIsFree(tile, active)) return;
+      positions.forEach((tile) => {
+        if (!active.has(tile.id) || !tileIsFree(tile, active, positions)) return;
         const face = assignments.get(tile.id);
         if (!freeByFace.has(face)) freeByFace.set(face, []);
         freeByFace.get(face).push(tile.id);
@@ -997,30 +1336,35 @@
     }
 
     function makeNewBoard() {
-      active = new Set(TILE_POSITIONS.map((tile) => tile.id));
-      assignments = buildSolvableTileAssignment(active, TILE_FACES) || new Map();
+      positions = (level.data.positions || []).map((tile) => ({ ...tile }));
+      active = new Set(positions.map((tile) => tile.id));
+      assignments = new Map(Object.entries(level.data.faces || {}).map(([id, face]) => [Number(id), String(face)]));
       selected = null;
       hintIds.clear();
       moves = 0;
       matchedPairs = 0;
+      completed = false;
       saveState();
       renderBoard();
-      announce("A new tile board is ready.");
+      announce("Tile level reset.");
     }
 
     function restoreBoard() {
-      const saved = loadJSON("pg-tiles-save", null);
+      positions = (level.data.positions || []).map((tile) => ({ ...tile }));
+      const saved = loadJSON(`pg-tiles-${level.id}`, null);
       if (
         saved &&
         Array.isArray(saved.active) &&
         saved.assignments &&
         typeof saved.assignments === "object" &&
-        Object.keys(saved.assignments).length === TILE_POSITIONS.length
+        Object.keys(saved.assignments).length === positions.length
       ) {
-        active = new Set(saved.active.filter((id) => Number.isInteger(id) && id >= 0 && id < TILE_POSITIONS.length));
+        const positionIds = new Set(positions.map((tile) => tile.id));
+        active = new Set(saved.active.filter((id) => Number.isInteger(id) && positionIds.has(id)));
         assignments = new Map(Object.entries(saved.assignments).map(([id, face]) => [Number(id), face]));
         moves = Number(saved.moves) || 0;
         matchedPairs = Number(saved.matchedPairs) || 0;
+        completed = Boolean(saved.completed);
         selected = null;
         renderBoard();
       } else {
@@ -1031,23 +1375,33 @@
     function renderBoard() {
       boardElement.textContent = "";
       const openMatches = countFreeMatchingPairs();
+      const width = Math.max(1, Number(level.data.width) || Math.max(...positions.map((tile) => tile.col + 1), 1));
+      const height = Math.max(1, Number(level.data.height) || Math.max(...positions.map((tile) => tile.row + 1), 1));
+      const maxLayer = Math.max(0, ...positions.map((tile) => Number(tile.layer) || 0));
+      const tileWidth = Math.min(18, 86 / (width + maxLayer * 0.25));
+      const tileHeight = Math.min(22, 82 / (height + maxLayer * 0.25));
+      boardElement.style.aspectRatio = `${Math.max(width, 4) + maxLayer * 0.55} / ${Math.max(height, 3) + maxLayer * 0.35}`;
 
-      TILE_POSITIONS
+      positions
         .filter((tile) => active.has(tile.id))
         .sort((a, b) => a.layer - b.layer || a.row - b.row || a.col - b.col)
         .forEach((tile) => {
-          const isFree = tileIsFree(tile, active);
+          const isFree = tileIsFree(tile, active, positions);
+          const face = assignments.get(tile.id) || "?";
+          const label = catalogTileFaceLabel(face, level.data.theme);
           const button = document.createElement("button");
           button.type = "button";
           button.dataset.id = String(tile.id);
           button.className = `mahjong-tile ${isFree ? "free" : "blocked"}`;
           if (selected === tile.id) button.classList.add("selected");
           if (hintIds.has(tile.id)) button.classList.add("hint");
-          button.style.left = `${2.2 + tile.col * 15.7 + tile.layer * 0.9}%`;
-          button.style.top = `${4 + tile.row * 14.7 - tile.layer * 1.1}%`;
+          button.style.width = `${tileWidth}%`;
+          button.style.height = `${tileHeight}%`;
+          button.style.left = `${4 + tile.col * (88 / width) + tile.layer * 0.9}%`;
+          button.style.top = `${5 + tile.row * (84 / height) - tile.layer * 1.1}%`;
           button.style.zIndex = String(tile.layer * 100 + tile.row * 8 + tile.col);
-          button.textContent = assignments.get(tile.id) || "?";
-          button.setAttribute("aria-label", `${assignments.get(tile.id)} tile, ${isFree ? "open" : "blocked"}`);
+          button.textContent = label;
+          button.setAttribute("aria-label", `${label} tile, ${isFree ? "open" : "blocked"}`);
           button.setAttribute("aria-disabled", String(!isFree));
           button.addEventListener("click", () => selectTile(tile.id));
           boardElement.append(button);
@@ -1056,6 +1410,7 @@
       remainingElement.textContent = String(active.size / 2);
       movesElement.textContent = String(moves);
       freePairsElement.textContent = String(openMatches);
+      levelSelect.value = level.id;
 
       if (active.size > 0 && openMatches === 0) {
         announce("No open match remains. Tap Reshuffle.");
@@ -1063,9 +1418,9 @@
     }
 
     function selectTile(id) {
-      const tile = TILE_POSITIONS[id];
+      const tile = positions.find((item) => item.id === id);
       if (!active.has(id)) return;
-      if (!tileIsFree(tile, active)) {
+      if (!tile || !tileIsFree(tile, active, positions)) {
         announce("That tile is covered or blocked on both sides.");
         playTone(250, 0.08);
         vibrate(16);
@@ -1096,6 +1451,9 @@
         saveState();
         renderBoard();
         if (active.size === 0) {
+          completed = true;
+          markCampaignLevelComplete(level);
+          saveState();
           celebrate(`Tile board cleared in ${moves} moves!`);
         }
       } else {
@@ -1109,8 +1467,8 @@
 
     function showHint() {
       const byFace = new Map();
-      TILE_POSITIONS.forEach((tile) => {
-        if (!active.has(tile.id) || !tileIsFree(tile, active)) return;
+      positions.forEach((tile) => {
+        if (!active.has(tile.id) || !tileIsFree(tile, active, positions)) return;
         const face = assignments.get(tile.id);
         if (!byFace.has(face)) byFace.set(face, []);
         byFace.get(face).push(tile.id);
@@ -1149,7 +1507,7 @@
         for (let i = 0; i < Math.floor(count / 2); i += 1) pairFaces.push(face);
       }
 
-      const replacement = buildSolvableTileAssignment(active, pairFaces);
+      const replacement = buildSolvableTileAssignment(active, pairFaces, positions);
       if (!replacement) {
         announce("This board could not be reshuffled. Start a new board.");
         return;
@@ -1167,6 +1525,19 @@
     app.querySelector("#tileNew").addEventListener("click", makeNewBoard);
     app.querySelector("#tileHint").addEventListener("click", showHint);
     app.querySelector("#tileShuffle").addEventListener("click", reshuffleRemaining);
+    levelSelect.addEventListener("change", () => {
+      const nextLevel = TILE_LEVELS.find((item) => item.id === levelSelect.value && isLevelUnlocked(item));
+      if (!nextLevel) {
+        levelSelect.value = level.id;
+        announce("That world is still locked.");
+        return;
+      }
+      level = nextLevel;
+      currentLevelId = level.id;
+      restoreBoard();
+      saveJSON("pg-tiles-current", currentLevelId);
+      playTone(500);
+    });
 
     restoreBoard();
 
@@ -1209,14 +1580,60 @@
     );
   }
 
+  function seededRandom(seedText) {
+    let seed = 2166136261;
+    for (let index = 0; index < String(seedText).length; index += 1) {
+      seed ^= String(seedText).charCodeAt(index);
+      seed = Math.imul(seed, 16777619);
+    }
+    return () => {
+      seed += 0x6D2B79F5;
+      let value = seed;
+      value = Math.imul(value ^ value >>> 15, value | 1);
+      value ^= value + Math.imul(value ^ value >>> 7, value | 61);
+      return ((value ^ value >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  function seededShuffle(array, random) {
+    const copy = [...array];
+    for (let i = copy.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  }
+
+  function fallingMissionText(level) {
+    const type = level.data.missionType;
+    if (type === "lines") return `Clear ${level.data.target} rows`;
+    if (type === "score") return `Score ${level.data.target}`;
+    if (type === "low-stack") return `Keep stack at ${level.data.target} rows or lower`;
+    if (type === "combos") return `Make ${level.data.target} line-clear combos`;
+    return `Place ${level.data.target} pieces`;
+  }
+
   function renderFallingShapes() {
-    let board = Array.from({ length: FALLING_ROWS }, () => Array(FALLING_COLS).fill(0));
+    const FALLING_LEVELS = campaignLevelsForGame("falling");
+    const unlockedFalling = FALLING_LEVELS.filter((level) => isLevelUnlocked(level));
+    const availableFalling = unlockedFalling.length ? unlockedFalling : FALLING_LEVELS;
+    let currentLevelId = loadJSON("pg-falling-current", availableFalling[0].id);
+    if (!availableFalling.some((level) => level.id === currentLevelId)) currentLevelId = availableFalling[0].id;
+    let mission = FALLING_LEVELS.find((level) => level.id === currentLevelId) || availableFalling[0];
+    let cols = Number(mission.data.cols) || FALLING_COLS;
+    let rows = Number(mission.data.rows) || FALLING_ROWS;
+    let random = seededRandom(mission.data.seed || mission.seed || mission.id);
+    let board = Array.from({ length: rows }, () => Array(cols).fill(0));
     let current = null;
     let next = null;
     let bag = [];
     let score = 0;
     let lines = 0;
     let level = 1;
+    let pieces = 0;
+    let combos = 0;
+    let comboStreak = 0;
+    let missionComplete = false;
     let highScore = Number(loadJSON("pg-falling-high-score", 0)) || 0;
     let running = false;
     let started = false;
@@ -1230,9 +1647,22 @@
         <div class="panel game-intro">
           <div>
             <h2 id="fallingHeading">Falling Shapes</h2>
-            <p>Move and rotate each shape. Complete a full row to clear it before the stack reaches the top.</p>
+            <p>Move and rotate each shape to complete the selected campaign mission.</p>
           </div>
-          <div class="status-pill"><span>Best score</span><strong id="fallingBest">0</strong></div>
+          <div class="status-pill"><span>Mission</span><strong id="fallingMissionName"></strong></div>
+        </div>
+
+        <div class="panel toolbar" aria-label="Falling Shapes level controls">
+          <div class="toolbar-group">
+            <label class="sr-only" for="fallingLevelSelect">Choose a level</label>
+            <select id="fallingLevelSelect" class="control">
+              ${FALLING_LEVELS.map((item) => `<option value="${item.id}" ${isLevelUnlocked(item) ? "" : "disabled"}>${escapeHTML(levelOptionLabel(item))}</option>`).join("")}
+            </select>
+          </div>
+          <div class="status-row">
+            <span class="status-pill">Goal <strong id="fallingGoal"></strong></span>
+            <span class="status-pill">Pieces <strong id="fallingPieces">0</strong></span>
+          </div>
         </div>
 
         <div class="falling-layout">
@@ -1260,6 +1690,8 @@
                 <div class="score-box"><span>Rows</span><strong id="fallingLines">0</strong></div>
                 <div class="score-box"><span>Level</span><strong id="fallingLevel">1</strong></div>
                 <div class="score-box"><span>Status</span><strong id="fallingStatus">Ready</strong></div>
+                <div class="score-box"><span>Best</span><strong id="fallingBest">0</strong></div>
+                <div class="score-box"><span>Progress</span><strong id="fallingProgress">0</strong></div>
               </div>
               <div class="compact-toolbar" style="margin-top: 12px;">
                 <button id="fallingNew" class="primary-button" type="button">Start game</button>
@@ -1280,16 +1712,21 @@
     const context = canvas.getContext("2d");
     const nextCanvas = app.querySelector("#nextCanvas");
     const nextContext = nextCanvas.getContext("2d");
+    const levelSelect = app.querySelector("#fallingLevelSelect");
+    const missionNameElement = app.querySelector("#fallingMissionName");
+    const goalElement = app.querySelector("#fallingGoal");
+    const piecesElement = app.querySelector("#fallingPieces");
     const scoreElement = app.querySelector("#fallingScore");
     const linesElement = app.querySelector("#fallingLines");
     const levelElement = app.querySelector("#fallingLevel");
     const bestElement = app.querySelector("#fallingBest");
+    const progressElement = app.querySelector("#fallingProgress");
     const statusElement = app.querySelector("#fallingStatus");
     const newButton = app.querySelector("#fallingNew");
     const pauseButton = app.querySelector("#fallingPause");
 
     function nextShapeIndex() {
-      if (bag.length === 0) bag = shuffle(FALLING_SHAPES.map((_, index) => index));
+      if (bag.length === 0) bag = seededShuffle(FALLING_SHAPES.map((_, index) => index), random);
       return bag.pop();
     }
 
@@ -1300,19 +1737,19 @@
         shapeIndex,
         shape,
         color: shapeIndex + 1,
-        x: Math.floor((FALLING_COLS - shape[0].length) / 2),
+        x: Math.floor((cols - shape[0].length) / 2),
         y: 0
       };
     }
 
     function validBoard(candidate) {
       return Array.isArray(candidate) &&
-        candidate.length === FALLING_ROWS &&
-        candidate.every((row) => Array.isArray(row) && row.length === FALLING_COLS && row.every((cell) => Number.isInteger(cell)));
+        candidate.length === rows &&
+        candidate.every((row) => Array.isArray(row) && row.length === cols && row.every((cell) => Number.isInteger(cell)));
     }
 
     function saveState() {
-      saveJSON("pg-falling-save", {
+      saveJSON(`pg-falling-${mission.id}`, {
         board,
         current,
         next,
@@ -1320,13 +1757,18 @@
         score,
         lines,
         level,
+        pieces,
+        combos,
+        comboStreak,
+        missionComplete,
         started,
         gameOver
       });
+      saveJSON("pg-falling-current", mission.id);
     }
 
     function restoreState() {
-      const saved = loadJSON("pg-falling-save", null);
+      const saved = loadJSON(`pg-falling-${mission.id}`, null);
       if (saved && validBoard(saved.board)) {
         board = saved.board.map((row) => [...row]);
         current = saved.current && Array.isArray(saved.current.shape) ? saved.current : null;
@@ -1335,6 +1777,10 @@
         score = Number(saved.score) || 0;
         lines = Number(saved.lines) || 0;
         level = Math.max(1, Number(saved.level) || 1);
+        pieces = Number(saved.pieces) || 0;
+        combos = Number(saved.combos) || 0;
+        comboStreak = Number(saved.comboStreak) || 0;
+        missionComplete = Boolean(saved.missionComplete);
         started = Boolean(saved.started);
         gameOver = Boolean(saved.gameOver);
         running = false;
@@ -1348,17 +1794,94 @@
     }
 
     function prepareBlankGame() {
-      board = Array.from({ length: FALLING_ROWS }, () => Array(FALLING_COLS).fill(0));
+      board = Array.from({ length: rows }, () => Array(cols).fill(0));
+      const obstacleRows = Array.isArray(mission.data.obstacleRows) ? mission.data.obstacleRows : [];
+      obstacleRows.forEach((sourceRow, offset) => {
+        const targetRow = rows - obstacleRows.length + offset;
+        if (targetRow < 0 || targetRow >= rows || !Array.isArray(sourceRow)) return;
+        board[targetRow] = Array.from({ length: cols }, (_, col) => sourceRow[col] ? 8 : 0);
+      });
       bag = [];
+      random = seededRandom(mission.data.seed || mission.seed || mission.id);
       current = makePiece();
       next = makePiece();
       score = 0;
       lines = 0;
-      level = 1;
+      level = Math.max(1, Number(mission.data.startLevel) || 1);
+      pieces = 0;
+      combos = 0;
+      comboStreak = 0;
+      missionComplete = false;
       running = false;
       started = false;
       gameOver = false;
       saveState();
+    }
+
+    function configureMission(nextMission) {
+      mission = nextMission;
+      currentLevelId = mission.id;
+      cols = Number(mission.data.cols) || FALLING_COLS;
+      rows = Number(mission.data.rows) || FALLING_ROWS;
+      random = seededRandom(mission.data.seed || mission.seed || mission.id);
+      canvas.width = cols * FALLING_CELL;
+      canvas.height = rows * FALLING_CELL;
+      levelSelect.value = mission.id;
+    }
+
+    function stackHeight() {
+      const firstFilled = board.findIndex((row) => row.some((cell) => cell !== 0));
+      return firstFilled < 0 ? 0 : rows - firstFilled;
+    }
+
+    function missionProgress() {
+      const type = mission.data.missionType;
+      if (type === "lines") return lines;
+      if (type === "score") return score;
+      if (type === "low-stack") return pieces;
+      if (type === "combos") return combos;
+      return pieces;
+    }
+
+    function missionTarget() {
+      if (mission.data.missionType === "low-stack") return Number(mission.data.pieceLimit) || Number(mission.par) || 0;
+      return Number(mission.data.target) || 0;
+    }
+
+    function checkMissionStatus() {
+      if (missionComplete || gameOver) return;
+      const type = mission.data.missionType;
+      const target = Number(mission.data.target) || 0;
+      const pieceLimit = Number(mission.data.pieceLimit) || Infinity;
+      const won =
+        (type === "lines" && lines >= target) ||
+        (type === "score" && score >= target) ||
+        (type === "combos" && combos >= target) ||
+        (type === "pieces" && pieces >= target) ||
+        (type === "low-stack" && pieces >= pieceLimit && stackHeight() <= target);
+
+      if (won) {
+        missionComplete = true;
+        running = false;
+        gameOver = true;
+        if (score > highScore) {
+          highScore = score;
+          saveJSON("pg-falling-high-score", highScore);
+        }
+        markCampaignLevelComplete(mission);
+        celebrate(`${mission.name} complete!`);
+        saveState();
+        updateStats();
+        return;
+      }
+
+      if (pieces >= pieceLimit || (type === "low-stack" && stackHeight() > target)) {
+        running = false;
+        gameOver = true;
+        announce(type === "low-stack" ? "The stack climbed too high. Try again." : "Piece limit reached. Try again.");
+        saveState();
+        updateStats();
+      }
     }
 
     function collision(piece, offsetX = 0, offsetY = 0, shape = piece.shape) {
@@ -1367,7 +1890,7 @@
           if (!shape[row][col]) continue;
           const x = piece.x + col + offsetX;
           const y = piece.y + row + offsetY;
-          if (x < 0 || x >= FALLING_COLS || y >= FALLING_ROWS) return true;
+          if (x < 0 || x >= cols || y >= rows) return true;
           if (y >= 0 && board[y][x] !== 0) return true;
         }
       }
@@ -1376,7 +1899,7 @@
 
     function spawnPiece() {
       current = next || makePiece();
-      current.x = Math.floor((FALLING_COLS - current.shape[0].length) / 2);
+      current.x = Math.floor((cols - current.shape[0].length) / 2);
       current.y = 0;
       next = makePiece();
       if (collision(current)) {
@@ -1394,13 +1917,7 @@
     }
 
     function startNewGame() {
-      board = Array.from({ length: FALLING_ROWS }, () => Array(FALLING_COLS).fill(0));
-      bag = [];
-      current = makePiece();
-      next = makePiece();
-      score = 0;
-      lines = 0;
-      level = 1;
+      prepareBlankGame();
       running = true;
       started = true;
       gameOver = false;
@@ -1441,7 +1958,7 @@
           if (!filled) return;
           const y = current.y + rowIndex;
           const x = current.x + colIndex;
-          if (y >= 0 && y < FALLING_ROWS && x >= 0 && x < FALLING_COLS) {
+          if (y >= 0 && y < rows && x >= 0 && x < cols) {
             board[y][x] = current.color;
           }
         });
@@ -1450,23 +1967,30 @@
 
     function clearCompleteRows() {
       const remaining = board.filter((row) => row.some((cell) => cell === 0));
-      const cleared = FALLING_ROWS - remaining.length;
-      while (remaining.length < FALLING_ROWS) remaining.unshift(Array(FALLING_COLS).fill(0));
+      const cleared = rows - remaining.length;
+      while (remaining.length < rows) remaining.unshift(Array(cols).fill(0));
       board = remaining;
 
       if (cleared > 0) {
         const awards = [0, 100, 260, 480, 800];
         score += (awards[cleared] || cleared * 250) * level;
         lines += cleared;
+        if (comboStreak > 0) combos += 1;
+        comboStreak += 1;
         level = Math.floor(lines / 8) + 1;
         playTone(620 + cleared * 70, 0.14, 0.045);
         vibrate(cleared >= 3 ? [20, 30, 30] : 18);
+      } else {
+        comboStreak = 0;
       }
     }
 
     function lockCurrent() {
       mergeCurrent();
+      pieces += 1;
       clearCompleteRows();
+      checkMissionStatus();
+      if (missionComplete || gameOver) return;
       spawnPiece();
       if (score > highScore) {
         highScore = score;
@@ -1512,11 +2036,15 @@
     }
 
     function updateStats() {
+      missionNameElement.textContent = `${mission.world.name} - ${mission.name}`;
+      goalElement.textContent = fallingMissionText(mission);
+      piecesElement.textContent = `${pieces}/${Number(mission.data.pieceLimit) || mission.par || 0}`;
       scoreElement.textContent = String(score);
       linesElement.textContent = String(lines);
       levelElement.textContent = String(level);
       bestElement.textContent = String(highScore);
-      statusElement.textContent = gameOver ? "Finished" : running ? "Playing" : started ? "Paused" : "Ready";
+      progressElement.textContent = `${missionProgress()}/${missionTarget()}`;
+      statusElement.textContent = missionComplete ? "Complete" : gameOver ? "Finished" : running ? "Playing" : started ? "Paused" : "Ready";
       pauseButton.disabled = !started || gameOver;
       pauseButton.textContent = !started ? "Pause" : running ? "Pause" : "Resume";
       newButton.textContent = started ? "New game" : "Start game";
@@ -1560,13 +2088,13 @@
 
       context.strokeStyle = "rgba(255,255,255,0.055)";
       context.lineWidth = 1;
-      for (let col = 0; col <= FALLING_COLS; col += 1) {
+      for (let col = 0; col <= cols; col += 1) {
         context.beginPath();
         context.moveTo(col * FALLING_CELL + 0.5, 0);
         context.lineTo(col * FALLING_CELL + 0.5, canvas.height);
         context.stroke();
       }
-      for (let row = 0; row <= FALLING_ROWS; row += 1) {
+      for (let row = 0; row <= rows; row += 1) {
         context.beginPath();
         context.moveTo(0, row * FALLING_CELL + 0.5);
         context.lineTo(canvas.width, row * FALLING_CELL + 0.5);
@@ -1593,11 +2121,11 @@
         context.textAlign = "center";
         context.textBaseline = "middle";
         context.font = "700 24px system-ui, sans-serif";
-        const title = gameOver ? "Game over" : started ? "Paused" : "Ready?";
+        const title = missionComplete ? "Complete" : gameOver ? "Game over" : started ? "Paused" : "Ready?";
         context.fillText(title, canvas.width / 2, canvas.height / 2 - 16);
         context.font = "500 14px system-ui, sans-serif";
         context.fillStyle = "rgba(255,253,248,0.85)";
-        context.fillText(gameOver ? "Tap New game" : started ? "Tap Resume" : "Tap Start game", canvas.width / 2, canvas.height / 2 + 20);
+        context.fillText(missionComplete ? "Choose another level" : gameOver ? "Tap New game" : started ? "Tap Resume" : "Tap Start game", canvas.width / 2, canvas.height / 2 + 20);
       }
     }
 
@@ -1621,7 +2149,8 @@
 
     function gameLoop(timestamp) {
       if (running) {
-        const interval = Math.max(150, 820 - (level - 1) * 65);
+        const missionTicks = Number(mission.data.gravityTicks) || 0;
+        const interval = missionTicks ? Math.max(120, missionTicks * (1000 / 60)) : Math.max(150, 820 - (level - 1) * 65);
         if (timestamp - lastDrop >= interval) {
           stepDown(false);
           lastDrop = timestamp;
@@ -1675,6 +2204,20 @@
     app.querySelector("#fallDrop").addEventListener("click", hardDrop);
     newButton.addEventListener("click", startNewGame);
     pauseButton.addEventListener("click", togglePause);
+    levelSelect.addEventListener("change", () => {
+      const nextMission = FALLING_LEVELS.find((item) => item.id === levelSelect.value && isLevelUnlocked(item));
+      if (!nextMission) {
+        levelSelect.value = mission.id;
+        announce("That world is still locked.");
+        return;
+      }
+      running = false;
+      configureMission(nextMission);
+      restoreState();
+      updateStats();
+      saveJSON("pg-falling-current", mission.id);
+      playTone(500);
+    });
     document.addEventListener("keydown", onKeyDown);
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointerup", onPointerUp);
@@ -1688,6 +2231,7 @@
     }
     document.addEventListener("visibilitychange", onVisibilityChange);
 
+    configureMission(mission);
     restoreState();
     updateStats();
     animationFrame = requestAnimationFrame(gameLoop);
@@ -1794,6 +2338,21 @@
     return occupied;
   }
 
+  function crateLevelFromCatalog(level) {
+    return {
+      ...level,
+      size: Number(level.data.size) || 6,
+      start: Array.isArray(level.data.start) ? level.data.start : [0, 0],
+      goal: Array.isArray(level.data.goal) ? level.data.goal : [0, 0],
+      towers: Array.isArray(level.data.towers) ? level.data.towers.map((tower, index) => ({
+        id: String(tower.id || `${level.id}-tower-${index}`),
+        row: Number(tower.row) || 0,
+        col: Number(tower.col) || 0,
+        height: Number(tower.height) || 1
+      })) : []
+    };
+  }
+
   function crateReachable(state, level) {
     const occupied = crateOccupied(state, level);
     const startKey = keyOf(state.player[0], state.player[1]);
@@ -1807,7 +2366,7 @@
         const nextRow = row + direction.dr;
         const nextCol = col + direction.dc;
         const nextKey = keyOf(nextRow, nextCol);
-        if (nextRow < 0 || nextRow >= 6 || nextCol < 0 || nextCol >= 6) continue;
+        if (nextRow < 0 || nextRow >= level.size || nextCol < 0 || nextCol >= level.size) continue;
         if (occupied.has(nextKey) && !seen.has(nextKey)) {
           seen.add(nextKey);
           queue.push([nextRow, nextCol]);
@@ -1824,7 +2383,7 @@
       const row = tower.row + direction.dr * distance;
       const col = tower.col + direction.dc * distance;
       const key = keyOf(row, col);
-      if (row < 0 || row >= 6 || col < 0 || col >= 6 || occupied.has(key)) return null;
+      if (row < 0 || row >= level.size || col < 0 || col >= level.size || occupied.has(key)) return null;
       destination.push([row, col]);
     }
     return destination;
@@ -1900,8 +2459,13 @@
   }
 
   function renderCrateTrail() {
-    let currentLevelIndex = clamp(Number(loadJSON("pg-crates-current", 0)) || 0, 0, CRATE_LEVELS.length - 1);
-    let level = CRATE_LEVELS[currentLevelIndex];
+    const CRATE_CAMPAIGN_LEVELS = campaignLevelsForGame("crates").map(crateLevelFromCatalog);
+    const unlockedCrates = CRATE_CAMPAIGN_LEVELS.filter((level) => isLevelUnlocked(level));
+    const availableCrates = unlockedCrates.length ? unlockedCrates : CRATE_CAMPAIGN_LEVELS;
+    let currentLevelId = loadJSON("pg-crates-current", availableCrates[0].id);
+    if (!availableCrates.some((level) => level.id === currentLevelId)) currentLevelId = availableCrates[0].id;
+    let currentLevelIndex = Math.max(0, CRATE_CAMPAIGN_LEVELS.findIndex((item) => item.id === currentLevelId));
+    let level = CRATE_CAMPAIGN_LEVELS[currentLevelIndex] || availableCrates[0];
     let state = null;
     let selectedTowerId = null;
     let hintDirection = null;
@@ -1909,7 +2473,7 @@
     let completed = false;
     let history = [];
     let hintTimer = 0;
-    const completedLevels = new Set(loadJSON("pg-crates-completed", []).filter((index) => Number.isInteger(index)));
+    const completedLevels = campaignCompletedIds();
 
     app.innerHTML = `
       <section class="game-layout" aria-labelledby="crateHeading">
@@ -1974,10 +2538,12 @@
 
     function populateLevelSelect() {
       levelSelect.textContent = "";
-      CRATE_LEVELS.forEach((item, index) => {
+      CRATE_CAMPAIGN_LEVELS.forEach((item, index) => {
         const option = document.createElement("option");
         option.value = String(index);
         option.textContent = `${index + 1}. ${item.name}${completedLevels.has(index) ? " ✓" : ""}`;
+        option.disabled = !isLevelUnlocked(item);
+        option.textContent = `${item.globalNumber}. ${item.world.name} - ${item.name}${completedLevels.has(item.id) ? " *" : ""}`;
         levelSelect.append(option);
       });
       levelSelect.value = String(currentLevelIndex);
@@ -1985,12 +2551,7 @@
 
     function freshState() {
       return {
-        standing: level.towers.map(([row, col, height], index) => ({
-          id: `L${currentLevelIndex}T${index}`,
-          row,
-          col,
-          height
-        })),
+        standing: level.towers.map((tower) => ({ ...tower })),
         fallen: new Set(),
         player: [...level.start]
       };
@@ -2005,21 +2566,27 @@
     }
 
     function saveState() {
-      saveJSON(`pg-crates-level-${currentLevelIndex}`, {
+      saveJSON(`pg-crates-level-${level.id}`, {
         standing: state.standing,
         fallen: [...state.fallen],
         player: state.player,
         moves,
         completed
       });
-      saveJSON("pg-crates-current", currentLevelIndex);
-      saveJSON("pg-crates-completed", [...completedLevels]);
+      saveJSON("pg-crates-current", level.id);
     }
 
     function loadLevel(index) {
-      currentLevelIndex = clamp(index, 0, CRATE_LEVELS.length - 1);
-      level = CRATE_LEVELS[currentLevelIndex];
-      const saved = loadJSON(`pg-crates-level-${currentLevelIndex}`, null);
+      const candidate = CRATE_CAMPAIGN_LEVELS[clamp(index, 0, CRATE_CAMPAIGN_LEVELS.length - 1)];
+      if (!candidate || !isLevelUnlocked(candidate)) {
+        announce("That world is still locked.");
+        populateLevelSelect();
+        return;
+      }
+      currentLevelIndex = CRATE_CAMPAIGN_LEVELS.indexOf(candidate);
+      level = candidate;
+      currentLevelId = level.id;
+      const saved = loadJSON(`pg-crates-level-${level.id}`, null);
       if (validSavedState(saved)) {
         state = {
           standing: saved.standing.map((tower) => ({ ...tower })),
@@ -2072,7 +2639,8 @@
       state.player = [...level.goal];
       if (!completed) {
         completed = true;
-        completedLevels.add(currentLevelIndex);
+        completedLevels.add(level.id);
+        markCampaignLevelComplete(level);
         populateLevelSelect();
         celebrate(`Level ${currentLevelIndex + 1} complete in ${moves} moves!`);
       }
@@ -2090,8 +2658,10 @@
       if (selected && !reachable.has(keyOf(selected.row, selected.col))) selectedTowerId = null;
 
       boardElement.textContent = "";
-      for (let row = 0; row < 6; row += 1) {
-        for (let col = 0; col < 6; col += 1) {
+      boardElement.style.setProperty("--crate-size", String(level.size));
+      boardElement.setAttribute("aria-label", `${level.size} by ${level.size} crate puzzle board`);
+      for (let row = 0; row < level.size; row += 1) {
+        for (let col = 0; col < level.size; col += 1) {
           const cellKey = keyOf(row, col);
           const tower = state.standing.find((item) => item.row === row && item.col === col);
           const isFallen = state.fallen.has(cellKey);
@@ -2172,13 +2742,13 @@
         button.classList.toggle("hint", hintDirection === direction.id && legal);
       });
 
-      difficultyElement.textContent = level.difficulty;
+      difficultyElement.textContent = `${level.world.name} - ${level.difficulty}`;
       movesElement.textContent = String(moves);
       remainingElement.textContent = String(state.standing.length);
-      levelNameElement.textContent = `${currentLevelIndex + 1}: ${level.name}`;
+      levelNameElement.textContent = `${level.globalNumber}: ${level.name}`;
       undoButton.disabled = history.length === 0;
       nextButton.disabled = !completed;
-      nextButton.textContent = currentLevelIndex === CRATE_LEVELS.length - 1 ? "Level 1" : "Next level";
+      nextButton.textContent = currentLevelIndex === CRATE_CAMPAIGN_LEVELS.length - 1 ? "Level 1" : "Next level";
 
       if (completed) {
         instructionElement.textContent = "The explorer reached the lantern. Choose the next level when ready.";
@@ -2290,7 +2860,7 @@
     hintButton.addEventListener("click", requestHint);
 
     nextButton.addEventListener("click", () => {
-      const nextIndex = currentLevelIndex === CRATE_LEVELS.length - 1 ? 0 : currentLevelIndex + 1;
+      const nextIndex = currentLevelIndex === CRATE_CAMPAIGN_LEVELS.length - 1 ? 0 : currentLevelIndex + 1;
       loadLevel(nextIndex);
       playTone(560);
     });
@@ -2331,10 +2901,16 @@
   /* App startup                                                        */
   /* ------------------------------------------------------------------ */
 
-  applySettings();
-  updateInstallUi();
-  window.addEventListener("hashchange", route);
-  route();
+  async function startApp() {
+    applySettings();
+    updateInstallUi();
+    renderCampaignLoading();
+    await loadCampaignCatalog();
+    window.addEventListener("hashchange", route);
+    route();
+  }
+
+  startApp();
 
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
     window.addEventListener("load", async () => {

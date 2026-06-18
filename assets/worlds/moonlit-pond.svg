@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Moonlit Pond">
+  <rect width="640" height="360" fill="#dfe8f7"/>
+  <path d="M0 225c70-34 149-35 238-3 89 33 171 31 247-5 60-28 112-31 155-9v152H0z" fill="#7aa4b8"/>
+  <circle cx="504" cy="83" r="50" fill="#fff8d8"/>
+  <path d="M526 47c-31 14-45 42-34 79 37-15 52-42 34-79z" fill="#dfe8f7"/>
+  <ellipse cx="320" cy="278" rx="235" ry="54" fill="#315f7a"/>
+  <ellipse cx="320" cy="270" rx="198" ry="36" fill="#8cc0cb"/>
+  <g fill="#f2d77d">
+    <ellipse cx="208" cy="255" rx="38" ry="15"/>
+    <ellipse cx="409" cy="285" rx="42" ry="16"/>
+  </g>
+  <g fill="#315f5a">
+    <path d="M189 251c28-31 52-31 78 0-29 12-55 12-78 0z"/>
+    <path d="M391 281c32-30 59-30 84 0-31 13-59 13-84 0z"/>
+  </g>
+</svg>

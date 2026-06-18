@@ -269,6 +269,114 @@ button:disabled {
   gap: 16px;
 }
 
+.campaign-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.campaign-summary div {
+  padding: 12px;
+  text-align: center;
+  background: #f1f5f2;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.campaign-summary span,
+.world-card-heading span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.campaign-summary strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 1.15rem;
+}
+
+.world-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.world-card {
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 5px 18px rgba(31, 56, 52, 0.07);
+}
+
+.world-card.locked {
+  filter: saturate(0.72);
+}
+
+.world-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: linear-gradient(135deg, var(--world-a), var(--world-b), var(--world-c));
+}
+
+.world-card-body {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.world-card-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.world-card h3 {
+  margin: 2px 0 0;
+  font-size: 1.16rem;
+}
+
+.world-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.world-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.world-game-button {
+  min-height: 42px;
+  padding: 8px 10px;
+  color: var(--accent-strong);
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.world-game-button:not(:disabled):hover {
+  background: var(--accent-soft);
+}
+
+.world-lock {
+  padding: 10px;
+  background: #f5efe1;
+  border: 1px solid #ead8b9;
+  border-radius: 10px;
+}
+
 .game-card {
   position: relative;
   display: grid;
@@ -484,7 +592,7 @@ select.control {
   display: grid;
   width: min(94vw, 510px);
   aspect-ratio: 1;
-  grid-template-columns: repeat(9, 1fr);
+  grid-template-columns: repeat(var(--sudoku-size, 9), 1fr);
   overflow: hidden;
   background: var(--surface-strong);
   border: 3px solid var(--accent-strong);
@@ -510,11 +618,11 @@ select.control {
 }
 
 .sudoku-cell:nth-child(9n) {
-  border-right: 0;
+  border-right: 1px solid #bcc8c3;
 }
 
 .sudoku-cell:nth-child(n+73) {
-  border-bottom: 0;
+  border-bottom: 1px solid #bcc8c3;
 }
 
 .sudoku-cell.box-right {
@@ -570,7 +678,7 @@ select.control {
 .number-pad {
   width: min(94vw, 510px);
   display: grid;
-  grid-template-columns: repeat(6, minmax(44px, 1fr));
+  grid-template-columns: repeat(var(--pad-columns, 6), minmax(44px, 1fr));
 }
 
 .number-button {
@@ -764,8 +872,8 @@ select.control {
   width: min(92vw, 520px);
   aspect-ratio: 1;
   padding: 8px;
-  grid-template-columns: repeat(6, 1fr);
-  grid-template-rows: repeat(6, 1fr);
+  grid-template-columns: repeat(var(--crate-size, 6), 1fr);
+  grid-template-rows: repeat(var(--crate-size, 6), 1fr);
   gap: 4px;
   background: #253d39;
   border: 4px solid #18302c;
@@ -976,6 +1084,15 @@ select.control {
 
 @media (max-width: 760px) {
   .home-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .campaign-summary,
+  .world-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .world-actions {
     grid-template-columns: 1fr;
   }
 
@@ -1707,7 +1824,7 @@ svg {
     grid-column: 2;
     width: 100%;
     padding: 5px;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--pad-columns, 6), minmax(0, 1fr));
   }
 
   .sudoku-shell .compact-toolbar,

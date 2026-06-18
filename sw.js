@@ -1,9 +1,10 @@
-const CACHE_NAME = "puzzle-garden-mobile-v2";
+const CACHE_NAME = "puzzle-garden-mobile-v3-campaign";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
   "./app.js",
+  "./campaign.json",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",
@@ -13,6 +14,12 @@ const APP_SHELL = [
   "./assets/icons/tile-pairs.svg",
   "./assets/icons/falling-shapes.svg",
   "./assets/icons/crate-trail.svg",
+  "./assets/worlds/seedling-meadow.svg",
+  "./assets/worlds/lantern-grove.svg",
+  "./assets/worlds/moonlit-pond.svg",
+  "./assets/worlds/crystal-conservatory.svg",
+  "./assets/worlds/cloud-orchard.svg",
+  "./assets/worlds/starlight-terrace.svg",
   "./assets/textures/board-paper.svg"
 ];
 

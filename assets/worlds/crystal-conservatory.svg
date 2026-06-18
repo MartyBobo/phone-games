@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Crystal Conservatory">
+  <rect width="640" height="360" fill="#eef7f4"/>
+  <path d="M64 310V106L320 34l256 72v204z" fill="#d9eee8" stroke="#315f5a" stroke-width="10"/>
+  <path d="M320 34v276M64 106h512M142 84l64 226M498 84l-64 226" stroke="#73a8a0" stroke-width="8"/>
+  <g fill="#9ed8c9" stroke="#315f5a" stroke-width="6">
+    <path d="M172 286l42-114 42 114z"/>
+    <path d="M284 286l54-150 54 150z"/>
+    <path d="M426 286l38-102 38 102z"/>
+  </g>
+  <path d="M0 310h640v50H0z" fill="#315f5a"/>
+  <g fill="#f5d58a">
+    <circle cx="219" cy="201" r="9"/>
+    <circle cx="341" cy="174" r="10"/>
+    <circle cx="470" cy="216" r="8"/>
+  </g>
+</svg>

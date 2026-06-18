@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Lantern Grove">
+  <rect width="640" height="360" fill="#fff4df"/>
+  <path d="M0 250c82-28 152-32 210-12 89 31 172 27 249-12 67-34 128-38 181-11v145H0z" fill="#5f8f7b"/>
+  <g fill="#2f4f4a">
+    <rect x="76" y="112" width="28" height="185" rx="14"/>
+    <rect x="252" y="82" width="34" height="215" rx="17"/>
+    <rect x="492" y="124" width="30" height="176" rx="15"/>
+  </g>
+  <g fill="#7fbf8f">
+    <circle cx="91" cy="93" r="70"/>
+    <circle cx="270" cy="72" r="88"/>
+    <circle cx="506" cy="105" r="74"/>
+  </g>
+  <g fill="#f0b35a" stroke="#8b4f2a" stroke-width="6">
+    <path d="M166 166h48l-8 56h-32z"/>
+    <path d="M379 135h52l-9 60h-34z"/>
+  </g>
+  <path d="M0 314c130-32 248-27 354 15 91 35 187 35 286-1v32H0z" fill="#304f49"/>
+</svg>

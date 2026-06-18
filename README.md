@@ -1,11 +1,13 @@
 ﻿# Puzzle Garden - touch-first mobile PWA
 
-Puzzle Garden is a static Progressive Web App containing four original puzzle games:
+Puzzle Garden is a static Progressive Web App containing four original puzzle games and a 240-level campaign catalog:
 
 - **Number Grid** - Sudoku-style number placement.
 - **Tile Pairs** - layered matching inspired by Mahjong Solitaire.
 - **Falling Shapes** - an original falling-block game.
 - **Crate Trail** - an original crate-tipping path puzzle.
+
+The campaign is loaded from `campaign.json` and contains six worlds with 40 levels each: 10 levels per game in every world. Progress is stored locally in the browser by catalog level ID.
 
 This version adapts the uploaded game for phone and tablet browsers. A single hosted website works on iPhone, iPad, Android, and desktop without distributing an Android application file.
 
@@ -107,6 +109,7 @@ phone-games/
 |-- index.html
 |-- styles.css
 |-- app.js
+|-- campaign.json
 |-- manifest.webmanifest
 |-- sw.js
 |-- icon-192.png
@@ -115,7 +118,8 @@ phone-games/
 `-- assets/
     |-- hero-garden.svg
     |-- icons/
-    `-- textures/
+    |-- textures/
+    `-- worlds/
 ```
 
 
