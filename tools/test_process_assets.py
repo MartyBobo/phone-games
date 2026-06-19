@@ -13,6 +13,11 @@ except ModuleNotFoundError:
 
 
 class ProcessAssetsTests(unittest.TestCase):
+    def image_pixels(self, image):
+        if hasattr(image, "get_flattened_data"):
+            return image.get_flattened_data()
+        return image.getdata()
+
     def make_source(self, root: Path) -> Path:
         source = root / "source.png"
         image = Image.new("RGBA", (200, 100), "#f5f7ea")
@@ -61,6 +66,12 @@ class ProcessAssetsTests(unittest.TestCase):
                 with Image.open(output) as image:
                     self.assertEqual(image.size, (64, 64))
                     self.assertEqual(image.mode, "RGBA")
+                    self.assertEqual(image.getpixel((0, 0))[3], 0)
+                    opaque_chroma = [
+                        pixel for pixel in self.image_pixels(image)
+                        if pixel[:3] == (245, 247, 234) and pixel[3] > 0
+                    ]
+                    self.assertEqual(opaque_chroma, [])
 
     def test_check_only_validates_without_writing_outputs(self):
         self.assertIsNotNone(process_manifest, "process_assets module must define process_manifest")

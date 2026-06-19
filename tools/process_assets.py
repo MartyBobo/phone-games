@@ -62,6 +62,22 @@ def bbox_for_chroma(image: Image.Image, chroma: tuple[int, int, int], threshold:
     return min_x, min_y, max_x + 1, max_y + 1
 
 
+def iter_pixels(image: Image.Image):
+    if hasattr(image, "get_flattened_data"):
+        return image.get_flattened_data()
+    return image.getdata()
+
+
+def make_chroma_transparent(image: Image.Image, chroma: tuple[int, int, int], threshold: int = 24) -> Image.Image:
+    rgba = image.convert("RGBA")
+    pixels = []
+    for r, g, b, alpha in iter_pixels(rgba):
+        distance = abs(r - chroma[0]) + abs(g - chroma[1]) + abs(b - chroma[2])
+        pixels.append((r, g, b, 0) if distance <= threshold else (r, g, b, alpha))
+    rgba.putdata(pixels)
+    return rgba
+
+
 def trim_image(image: Image.Image, asset: dict) -> Image.Image:
     mode = asset.get("trimMode", "fixed")
     if mode == "fixed":
@@ -69,7 +85,8 @@ def trim_image(image: Image.Image, asset: dict) -> Image.Image:
     if mode == "alpha":
         bbox = bbox_for_alpha(image)
     elif mode == "chroma":
-        bbox = bbox_for_chroma(image, hex_to_rgb(asset.get("chroma", "#f5f7ea")))
+        image = make_chroma_transparent(image, hex_to_rgb(asset.get("chroma", "#f5f7ea")))
+        bbox = bbox_for_alpha(image)
     else:
         raise ManifestError(f"Unsupported trimMode: {mode}")
 
