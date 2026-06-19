@@ -8,7 +8,31 @@ python tools\process_assets.py
 
 The script will slice, trim, resize, and export runtime assets into `assets/generated/` plus the PWA icon files.
 
-If you give Codex a finished image sheet instead, put it in `assets/source/imagegen/` with the matching filename below and I can format it into the game assets.
+If you give Codex a finished image sheet instead, it can have any filename. Import it into the matching source slot, then process the assets:
+
+```powershell
+python tools\import_imagegen_source.py tile-faces C:\path\to\downloaded-tile-sheet.png
+python tools\process_assets.py
+```
+
+If you generated the whole batch into `output/imagegen/puzzle-garden/` using the source filenames below, import everything at once:
+
+```powershell
+python tools\import_imagegen_source.py --from-dir output\imagegen\puzzle-garden
+python tools\process_assets.py
+```
+
+Accepted import IDs:
+
+```text
+tile-faces       -> assets/source/imagegen/tile-faces-source.png
+game-icons       -> assets/source/imagegen/game-icons-source.png
+worlds           -> assets/source/imagegen/worlds-source.png
+hero             -> assets/source/imagegen/hero-source.png
+app-icon-192     -> assets/source/imagegen/app-icon-source.png
+board-texture    -> assets/source/imagegen/board-texture-source.png
+ui-accents       -> assets/source/imagegen/ui-accents-source.png
+```
 
 ## Shared Style Block
 

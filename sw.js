@@ -1,15 +1,12 @@
-const CACHE_NAME = "puzzle-garden-mobile-v4-generated-assets";
-const APP_SHELL = [
-  "./",
-  "./index.html",
-  "./404.html",
-  "./styles.css",
-  "./app.js",
-  "./campaign.json",
-  "./manifest.webmanifest",
-  "./icon-192.png",
-  "./icon-512.png",
-  "./apple-touch-icon.png",
+const CACHE_NAME = "puzzle-garden-mobile-v6-imagegen-assets";
+const GENERATED_ASSET_VERSION = "imagegen-v1";
+
+function versionGeneratedAssetPath(path) {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}v=${encodeURIComponent(GENERATED_ASSET_VERSION)}`;
+}
+
+const GENERATED_ASSET_PATHS = [
   "./assets/generated/hero-garden.webp",
   "./assets/generated/game-icons/number-grid.png",
   "./assets/generated/game-icons/tile-pairs.png",
@@ -74,6 +71,21 @@ const APP_SHELL = [
   "./assets/generated/tile-faces/w6-f5.png",
   "./assets/generated/tile-faces/w6-f6.png",
   "./assets/generated/tile-faces/w6-f7.png"
+];
+
+const APP_SHELL = [
+  "./",
+  "./index.html",
+  "./404.html",
+  "./styles.css",
+  "./app.js",
+  "./app.js?v=imagegen-v1",
+  "./campaign.json",
+  "./manifest.webmanifest",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./apple-touch-icon.png",
+  ...GENERATED_ASSET_PATHS.map(versionGeneratedAssetPath)
 ];
 
 self.addEventListener("install", (event) => {

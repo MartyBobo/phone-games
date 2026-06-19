@@ -20,35 +20,43 @@
   let viewportFrame = 0;
 
   const GENERATED_ASSET_ROOT = "assets/generated";
+  const GENERATED_ASSET_VERSION = "imagegen-v1";
   const TILE_FACE_ASSET_RE = /^w[1-6]-f[0-7]$/;
+
+  function versionGeneratedAssetPath(path) {
+    const normalized = String(path || "");
+    if (!normalized.startsWith(`${GENERATED_ASSET_ROOT}/`)) return normalized;
+    const separator = normalized.includes("?") ? "&" : "?";
+    return `${normalized}${separator}v=${encodeURIComponent(GENERATED_ASSET_VERSION)}`;
+  }
 
   const GAME_META = {
     sudoku: {
       title: "Number Grid",
       subtitle: "Sudoku-style logic",
       icon: "9",
-      art: "assets/generated/game-icons/number-grid.png",
+      art: versionGeneratedAssetPath("assets/generated/game-icons/number-grid.png"),
       description: "Fill every row, column, and 3×3 box without repeating a number."
     },
     tiles: {
       title: "Tile Pairs",
       subtitle: "Mahjong-solitaire-style matching",
       icon: "❀",
-      art: "assets/generated/game-icons/tile-pairs.png",
+      art: versionGeneratedAssetPath("assets/generated/game-icons/tile-pairs.png"),
       description: "Match two open tiles at a time and clear the layered board."
     },
     falling: {
       title: "Falling Shapes",
       subtitle: "A fresh falling-block puzzle",
       icon: "▦",
-      art: "assets/generated/game-icons/falling-shapes.png",
+      art: versionGeneratedAssetPath("assets/generated/game-icons/falling-shapes.png"),
       description: "Rotate and place falling shapes to complete and clear rows."
     },
     crates: {
       title: "Crate Trail",
       subtitle: "Tip towers to build a path",
       icon: "▥",
-      art: "assets/generated/game-icons/crate-trail.png",
+      art: versionGeneratedAssetPath("assets/generated/game-icons/crate-trail.png"),
       description: "Tip stacks across the board so the explorer can reach the red lantern."
     }
   };
@@ -549,7 +557,7 @@
           <p>Explore six puzzle worlds with 240 catalog levels. Progress is saved on this device.</p>
         </div>
         <div class="hero-art hero-image" aria-hidden="true">
-          <img src="assets/generated/hero-garden.webp" alt="" width="640" height="420">
+          <img src="${escapeHTML(versionGeneratedAssetPath(`${GENERATED_ASSET_ROOT}/hero-garden.webp`))}" alt="" width="640" height="420">
         </div>
       </section>
 
@@ -577,7 +585,7 @@
           const palette = world.palette.length ? world.palette : ["#315f5a", "#9fc995", "#f5d58a", "#fff8e8"];
           return `
             <article class="world-card ${unlocked ? "" : "locked"}" style="--world-a:${escapeHTML(palette[0])};--world-b:${escapeHTML(palette[1])};--world-c:${escapeHTML(palette[2])};">
-              <img src="${escapeHTML(world.art)}" alt="" width="320" height="180">
+              <img src="${escapeHTML(versionGeneratedAssetPath(world.art))}" alt="" width="320" height="180">
               <div class="world-card-body">
                 <div class="world-card-heading">
                   <div>
@@ -600,7 +608,7 @@
       <section class="game-grid" aria-label="Puzzle games">
         ${Object.entries(GAME_META).map(([id, meta]) => `
           <button class="game-card" type="button" data-game="${id}">
-            <span class="game-card-icon" aria-hidden="true"><img src="${meta.art}" alt="" width="64" height="64"></span>
+            <span class="game-card-icon" aria-hidden="true"><img src="${escapeHTML(meta.art)}" alt="" width="64" height="64"></span>
             <span>
               <h3>${escapeHTML(meta.title)}</h3>
               <p>${escapeHTML(meta.description)}</p>
@@ -638,7 +646,7 @@
           <p>Choose a game, relax, and pick up exactly where you stopped. Everything is saved on this device.</p>
         </div>
         <div class="hero-art hero-image" aria-hidden="true">
-          <img src="assets/generated/hero-garden.webp" alt="" width="640" height="420">
+          <img src="${escapeHTML(versionGeneratedAssetPath(`${GENERATED_ASSET_ROOT}/hero-garden.webp`))}" alt="" width="640" height="420">
         </div>
       </section>
 
@@ -655,7 +663,7 @@
       <section class="game-grid" aria-label="Puzzle games">
         ${Object.entries(GAME_META).map(([id, meta]) => `
           <button class="game-card" type="button" data-game="${id}">
-            <span class="game-card-icon" aria-hidden="true"><img src="${meta.art}" alt="" width="64" height="64"></span>
+            <span class="game-card-icon" aria-hidden="true"><img src="${escapeHTML(meta.art)}" alt="" width="64" height="64"></span>
             <span>
               <h3>${meta.title}</h3>
               <p>${meta.description}</p>
@@ -1259,7 +1267,7 @@
 
   function tileFaceAssetPath(face) {
     const id = String(face || "");
-    return TILE_FACE_ASSET_RE.test(id) ? `${GENERATED_ASSET_ROOT}/tile-faces/${id}.png` : "";
+    return TILE_FACE_ASSET_RE.test(id) ? versionGeneratedAssetPath(`${GENERATED_ASSET_ROOT}/tile-faces/${id}.png`) : "";
   }
 
   function appendTileFace(button, label, imagePath) {
