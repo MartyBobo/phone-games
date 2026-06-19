@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "tile-faces",
+      "source": "assets/source/imagegen/tile-faces-source.png",
+      "outputDir": "assets/generated/tile-faces",
+      "cols": 8,
+      "rows": 6,
+      "trimMode": "chroma",
+      "chroma": "#f5f7ea",
+      "padding": 0.16,
+      "size": [192, 192],
+      "format": "png",
+      "outputs": [
+        "w1-f0.png", "w1-f1.png", "w1-f2.png", "w1-f3.png", "w1-f4.png", "w1-f5.png", "w1-f6.png", "w1-f7.png",
+        "w2-f0.png", "w2-f1.png", "w2-f2.png", "w2-f3.png", "w2-f4.png", "w2-f5.png", "w2-f6.png", "w2-f7.png",
+        "w3-f0.png", "w3-f1.png", "w3-f2.png", "w3-f3.png", "w3-f4.png", "w3-f5.png", "w3-f6.png", "w3-f7.png",
+        "w4-f0.png", "w4-f1.png", "w4-f2.png", "w4-f3.png", "w4-f4.png", "w4-f5.png", "w4-f6.png", "w4-f7.png",
+        "w5-f0.png", "w5-f1.png", "w5-f2.png", "w5-f3.png", "w5-f4.png", "w5-f5.png", "w5-f6.png", "w5-f7.png",
+        "w6-f0.png", "w6-f1.png", "w6-f2.png", "w6-f3.png", "w6-f4.png", "w6-f5.png", "w6-f6.png", "w6-f7.png"
+      ]
+    },
+    {
+      "id": "game-icons",
+      "source": "assets/source/imagegen/game-icons-source.png",
+      "outputDir": "assets/generated/game-icons",
+      "cols": 4,
+      "rows": 1,
+      "trimMode": "chroma",
+      "chroma": "#f5f7ea",
+      "padding": 0.12,
+      "size": [256, 256],
+      "format": "png",
+      "outputs": [
+        "number-grid.png",
+        "tile-pairs.png",
+        "falling-shapes.png",
+        "crate-trail.png"
+      ]
+    },
+    {
+      "id": "worlds",
+      "source": "assets/source/imagegen/worlds-source.png",
+      "outputDir": "assets/generated/worlds",
+      "cols": 3,
+      "rows": 2,
+      "trimMode": "fixed",
+      "padding": 0,
+      "size": [640, 360],
+      "format": "webp",
+      "outputs": [
+        "seedling-meadow.webp",
+        "lantern-grove.webp",
+        "moonlit-pond.webp",
+        "crystal-conservatory.webp",
+        "cloud-orchard.webp",
+        "starlight-terrace.webp"
+      ]
+    },
+    {
+      "id": "hero",
+      "source": "assets/source/imagegen/hero-source.png",
+      "outputDir": "assets/generated",
+      "cols": 1,
+      "rows": 1,
+      "trimMode": "fixed",
+      "padding": 0,
+      "size": [640, 420],
+      "format": "webp",
+      "outputs": ["hero-garden.webp"]
+    },
+    {
+      "id": "app-icon-192",
+      "source": "assets/source/imagegen/app-icon-source.png",
+      "outputDir": ".",
+      "cols": 1,
+      "rows": 1,
+      "trimMode": "fixed",
+      "padding": 0,
+      "size": [192, 192],
+      "format": "png",
+      "outputs": ["icon-192.png"]
+    },
+    {
+      "id": "app-icon-512",
+      "source": "assets/source/imagegen/app-icon-source.png",
+      "outputDir": ".",
+      "cols": 1,
+      "rows": 1,
+      "trimMode": "fixed",
+      "padding": 0,
+      "size": [512, 512],
+      "format": "png",
+      "outputs": ["icon-512.png"]
+    },
+    {
+      "id": "apple-touch-icon",
+      "source": "assets/source/imagegen/app-icon-source.png",
+      "outputDir": ".",
+      "cols": 1,
+      "rows": 1,
+      "trimMode": "fixed",
+      "padding": 0,
+      "size": [180, 180],
+      "format": "png",
+      "outputs": ["apple-touch-icon.png"]
+    },
+    {
+      "id": "board-texture",
+      "source": "assets/source/imagegen/board-texture-source.png",
+      "outputDir": "assets/generated/textures",
+      "cols": 1,
+      "rows": 1,
+      "trimMode": "fixed",
+      "padding": 0,
+      "size": [512, 512],
+      "format": "png",
+      "outputs": ["board-paper.png"]
+    },
+    {
+      "id": "ui-accents",
+      "source": "assets/source/imagegen/ui-accents-source.png",
+      "outputDir": "assets/generated/ui",
+      "cols": 4,
+      "rows": 1,
+      "trimMode": "chroma",
+      "chroma": "#f5f7ea",
+      "padding": 0.16,
+      "size": [128, 128],
+      "format": "png",
+      "outputs": [
+        "sparkle-burst.png",
+        "leafy-completion-badge.png",
+        "star-bloom.png",
+        "flower-confetti.png"
+      ]
+    }
+  ]
+}
