@@ -19,33 +19,36 @@
   let deferredInstallPrompt = null;
   let viewportFrame = 0;
 
+  const GENERATED_ASSET_ROOT = "assets/generated";
+  const TILE_FACE_ASSET_RE = /^w[1-6]-f[0-7]$/;
+
   const GAME_META = {
     sudoku: {
       title: "Number Grid",
       subtitle: "Sudoku-style logic",
       icon: "9",
-      art: "assets/icons/number-grid.svg",
+      art: "assets/generated/game-icons/number-grid.png",
       description: "Fill every row, column, and 3×3 box without repeating a number."
     },
     tiles: {
       title: "Tile Pairs",
       subtitle: "Mahjong-solitaire-style matching",
       icon: "❀",
-      art: "assets/icons/tile-pairs.svg",
+      art: "assets/generated/game-icons/tile-pairs.png",
       description: "Match two open tiles at a time and clear the layered board."
     },
     falling: {
       title: "Falling Shapes",
       subtitle: "A fresh falling-block puzzle",
       icon: "▦",
-      art: "assets/icons/falling-shapes.svg",
+      art: "assets/generated/game-icons/falling-shapes.png",
       description: "Rotate and place falling shapes to complete and clear rows."
     },
     crates: {
       title: "Crate Trail",
       subtitle: "Tip towers to build a path",
       icon: "▥",
-      art: "assets/icons/crate-trail.svg",
+      art: "assets/generated/game-icons/crate-trail.png",
       description: "Tip stacks across the board so the explorer can reach the red lantern."
     }
   };
@@ -233,7 +236,7 @@
 
   function safeWorldArtPath(value) {
     const path = String(value || "");
-    return /^assets\/worlds\/[a-z0-9-]+\.svg$/.test(path) ? path : "";
+    return /^assets\/(?:worlds\/[a-z0-9-]+\.svg|generated\/worlds\/[a-z0-9-]+\.webp)$/.test(path) ? path : "";
   }
 
   function safeHexColor(value, fallback) {
@@ -546,7 +549,7 @@
           <p>Explore six puzzle worlds with 240 catalog levels. Progress is saved on this device.</p>
         </div>
         <div class="hero-art hero-image" aria-hidden="true">
-          <img src="assets/hero-garden.svg" alt="" width="640" height="420">
+          <img src="assets/generated/hero-garden.webp" alt="" width="640" height="420">
         </div>
       </section>
 
@@ -635,7 +638,7 @@
           <p>Choose a game, relax, and pick up exactly where you stopped. Everything is saved on this device.</p>
         </div>
         <div class="hero-art hero-image" aria-hidden="true">
-          <img src="assets/hero-garden.svg" alt="" width="640" height="420">
+          <img src="assets/generated/hero-garden.webp" alt="" width="640" height="420">
         </div>
       </section>
 
@@ -1254,6 +1257,36 @@
     return TILE_FACES[(theme * 8 + index) % TILE_FACES.length] || String(face);
   }
 
+  function tileFaceAssetPath(face) {
+    const id = String(face || "");
+    return TILE_FACE_ASSET_RE.test(id) ? `${GENERATED_ASSET_ROOT}/tile-faces/${id}.png` : "";
+  }
+
+  function appendTileFace(button, label, imagePath) {
+    const fallback = document.createElement("span");
+    fallback.className = "tile-face-fallback";
+    fallback.textContent = label;
+    fallback.setAttribute("aria-hidden", "true");
+
+    if (!imagePath) {
+      button.append(fallback);
+      return;
+    }
+
+    const image = document.createElement("img");
+    image.className = "tile-face-image";
+    image.src = imagePath;
+    image.alt = "";
+    image.decoding = "async";
+    image.draggable = false;
+    fallback.hidden = true;
+    image.addEventListener("error", () => {
+      image.remove();
+      fallback.hidden = false;
+    }, { once: true });
+    button.append(image, fallback);
+  }
+
   function renderTilePairs() {
     const TILE_LEVELS = campaignLevelsForGame("tiles");
     const unlockedTiles = TILE_LEVELS.filter((level) => isLevelUnlocked(level));
@@ -1400,7 +1433,7 @@
           button.style.left = `${4 + tile.col * (88 / width) + tile.layer * 0.9}%`;
           button.style.top = `${5 + tile.row * (84 / height) - tile.layer * 1.1}%`;
           button.style.zIndex = String(tile.layer * 100 + tile.row * 8 + tile.col);
-          button.textContent = label;
+          appendTileFace(button, label, tileFaceAssetPath(face));
           button.setAttribute("aria-label", `${label} tile, ${isFree ? "open" : "blocked"}`);
           button.setAttribute("aria-disabled", String(!isFree));
           button.addEventListener("click", () => selectTile(tile.id));

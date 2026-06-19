@@ -10,7 +10,7 @@
       "unlockPoints": 0,
       "unlockCompletions": 0,
       "multiplier": 1,
-      "art": "assets/worlds/seedling-meadow.svg",
+      "art": "assets/generated/worlds/seedling-meadow.webp",
       "palette": [
         "#315f5a",
         "#9fc995",
@@ -26,7 +26,7 @@
       "unlockPoints": 2500,
       "unlockCompletions": 20,
       "multiplier": 1.2,
-      "art": "assets/worlds/lantern-grove.svg",
+      "art": "assets/generated/worlds/lantern-grove.webp",
       "palette": [
         "#263f46",
         "#70608f",
@@ -42,7 +42,7 @@
       "unlockPoints": 6500,
       "unlockCompletions": 55,
       "multiplier": 1.4,
-      "art": "assets/worlds/moonlit-pond.svg",
+      "art": "assets/generated/worlds/moonlit-pond.webp",
       "palette": [
         "#224f5b",
         "#5b89a2",
@@ -58,7 +58,7 @@
       "unlockPoints": 11500,
       "unlockCompletions": 90,
       "multiplier": 1.7,
-      "art": "assets/worlds/crystal-conservatory.svg",
+      "art": "assets/generated/worlds/crystal-conservatory.webp",
       "palette": [
         "#4e557b",
         "#8d75ab",
@@ -74,7 +74,7 @@
       "unlockPoints": 17500,
       "unlockCompletions": 125,
       "multiplier": 2,
-      "art": "assets/worlds/cloud-orchard.svg",
+      "art": "assets/generated/worlds/cloud-orchard.webp",
       "palette": [
         "#4479a3",
         "#98c9e9",
@@ -90,7 +90,7 @@
       "unlockPoints": 24500,
       "unlockCompletions": 160,
       "multiplier": 2.4,
-      "art": "assets/worlds/starlight-terrace.svg",
+      "art": "assets/generated/worlds/starlight-terrace.webp",
       "palette": [
         "#262a59",
         "#5c4d91",

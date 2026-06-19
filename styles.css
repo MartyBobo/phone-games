@@ -743,6 +743,18 @@ select.control {
   transition: transform 150ms ease, opacity 150ms ease, filter 150ms ease;
 }
 
+.tile-face-image {
+  display: block;
+  width: min(78%, 54px);
+  height: min(78%, 54px);
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.mahjong-tile .tile-face-fallback {
+  line-height: 1;
+}
+
 .mahjong-tile.free:hover,
 .mahjong-tile.free:focus-visible {
   transform: translateY(-3px);
