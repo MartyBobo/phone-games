@@ -5,34 +5,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#315f5a">
   <meta name="color-scheme" content="light">
-  <meta name="description" content="A calm, touch-friendly collection of four puzzle games that can be installed on a phone.">
+  <meta name="description" content="Puzzle Garden is a calm, touch-first collection of four puzzle games with 240 handcrafted levels.">
+  <meta name="application-name" content="Puzzle Garden">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Puzzle Garden">
   <meta name="format-detection" content="telephone=no">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="icon" href="icon-192.png">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="stylesheet" href="styles.css?v=mobile-v2">
   <title>Puzzle Garden</title>
 </head>
 <body>
   <a class="skip-link" href="#app">Skip to the game</a>
 
   <header class="app-header">
-    <button id="homeButton" class="icon-button" type="button" aria-label="Return to the game menu" title="Game menu" hidden>⌂</button>
+    <button id="homeButton" class="icon-button" type="button" aria-label="Return to the game menu" title="Game menu" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.7 12 3.8l8.5 6.9v8.5a1 1 0 0 1-1 1h-5.2v-5.6H9.7v5.6H4.5a1 1 0 0 1-1-1z"/></svg>
+    </button>
     <div class="header-title-wrap">
-      <div class="brand-mark" aria-hidden="true">✦</div>
-      <div>
+      <div class="brand-mark" aria-hidden="true"><img src="icon-192.png" alt="" width="42" height="42"></div>
+      <div class="header-copy">
         <h1 id="pageTitle">Puzzle Garden</h1>
         <p id="pageSubtitle">Four calm games, one simple website</p>
       </div>
     </div>
     <div class="header-actions">
-      <button id="installButton" class="icon-button install-header-button" type="button" aria-label="Install Puzzle Garden" title="Install app" hidden>⇩</button>
-      <button id="textSizeButton" class="icon-button" type="button" aria-pressed="false" aria-label="Use larger text" title="Larger text">A+</button>
-      <button id="soundButton" class="icon-button" type="button" aria-pressed="true" aria-label="Turn sound off" title="Sound on">♪</button>
+      <button id="installButton" class="icon-button install-header-button" type="button" aria-label="Install Puzzle Garden" title="Install app" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4M5 18v2h14v-2"/></svg>
+      </button>
+      <button id="textSizeButton" class="icon-button text-size-button" type="button" aria-pressed="false" aria-label="Use larger text" title="Larger text">Aa</button>
+      <button id="soundButton" class="icon-button sound-toggle" type="button" aria-pressed="true" aria-label="Turn sound off" title="Sound on">
+        <svg class="sound-on-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10v4h4l5 4V6l-5 4zm12-1.8a5 5 0 0 1 0 7.6m2.3-9.9a8 8 0 0 1 0 12.2"/></svg>
+        <svg class="sound-off-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10v4h4l5 4V6l-5 4zm12-1 4 4m0-4-4 4"/></svg>
+      </button>
     </div>
   </header>
 
@@ -59,6 +67,6 @@
     </section>
   </noscript>
 
-  <script src="app.js?v=imagegen-v1" defer></script>
+  <script src="app.js?v=mobile-v2" defer></script>
 </body>
 </html>

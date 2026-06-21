@@ -1,54 +1,66 @@
 {
-  "name": "Puzzle Garden",
-  "short_name": "Puzzles",
-  "description": "A calm, touch-friendly collection of four puzzle games.",
   "id": "./",
+  "name": "Puzzle Garden",
+  "short_name": "Puzzle Garden",
+  "description": "Four calm, touch-first puzzle games with a 240-level garden campaign.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
   "background_color": "#f5f1e8",
   "theme_color": "#315f5a",
-  "orientation": "any",
-  "categories": ["games", "entertainment"],
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
     {
       "name": "Number Grid",
-      "short_name": "Sudoku",
+      "short_name": "Number Grid",
+      "description": "Continue a number-placement puzzle.",
       "url": "./#/sudoku",
-      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [{ "src": "assets/generated/game-icons/number-grid.png", "sizes": "256x256", "type": "image/png" }]
     },
     {
       "name": "Tile Pairs",
-      "short_name": "Tiles",
+      "short_name": "Tile Pairs",
+      "description": "Continue a tile-matching puzzle.",
       "url": "./#/tiles",
-      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [{ "src": "assets/generated/game-icons/tile-pairs.png", "sizes": "256x256", "type": "image/png" }]
     },
     {
       "name": "Falling Shapes",
-      "short_name": "Shapes",
+      "short_name": "Falling Shapes",
+      "description": "Continue a falling-block mission.",
       "url": "./#/falling",
-      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [{ "src": "assets/generated/game-icons/falling-shapes.png", "sizes": "256x256", "type": "image/png" }]
     },
     {
       "name": "Crate Trail",
-      "short_name": "Crates",
+      "short_name": "Crate Trail",
+      "description": "Continue a crate-tipping path puzzle.",
       "url": "./#/crates",
-      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [{ "src": "assets/generated/game-icons/crate-trail.png", "sizes": "256x256", "type": "image/png" }]
     }
   ]
 }

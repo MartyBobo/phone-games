@@ -1,128 +1,126 @@
-﻿# Puzzle Garden - touch-first mobile PWA
+# Puzzle Garden — touch-first mobile PWA
 
-Puzzle Garden is a static Progressive Web App containing four original puzzle games and a 240-level campaign catalog:
+Puzzle Garden is a static Progressive Web App with four original puzzle games and a 240-level campaign:
 
-- **Number Grid** - Sudoku-style number placement.
-- **Tile Pairs** - layered matching inspired by Mahjong Solitaire.
-- **Falling Shapes** - an original falling-block game.
-- **Crate Trail** - an original crate-tipping path puzzle.
+- **Number Grid** — Sudoku-style number placement.
+- **Tile Pairs** — layered matching inspired by Mahjong Solitaire.
+- **Falling Shapes** — a falling-block mission game with touch gestures.
+- **Crate Trail** — a crate-tipping path puzzle.
 
-The campaign is loaded from `campaign.json` and contains six worlds with 40 levels each: 10 levels per game in every world. Progress is stored locally in the browser by catalog level ID.
+It runs entirely in the browser, requires no backend, and can be installed from the website on iPhone, iPad, and Android. Progress and settings are stored locally on the device.
 
-This version adapts the uploaded game for phone and tablet browsers. A single hosted website works on iPhone, iPad, Android, and desktop without distributing an Android application file.
+## Mobile experience
 
-## Mobile improvements
+The interface is designed around phone play rather than shrinking a desktop page:
 
-The app now includes:
+- Compact game headers leave more room for the board.
+- Standard controls meet a 44 CSS-pixel minimum touch target.
+- Game boards fit narrow portrait screens without horizontal page scrolling.
+- Short-landscape layouts place boards and controls side by side where useful.
+- iPhone safe areas and Android display cutouts are respected through `viewport-fit=cover` and safe-area insets.
+- Dynamic viewport measurements adapt when mobile browser bars or the on-screen keyboard change the usable height.
+- Falling Shapes can be started, resumed, moved, rotated, and dropped using the board or visible controls.
+- The home page puts Quick Play first and uses a swipeable campaign-world carousel on phones.
+- Pinch-to-zoom remains available.
+- Reduced-motion preferences, visible keyboard focus, screen-reader labels, large text, and sound controls are supported.
 
-- Layouts tested from 280-pixel-wide phones through tablets.
-- Portrait and short-landscape layouts.
-- Dynamic viewport-height handling for mobile browser bars.
-- iPhone and Android safe-area padding.
-- No horizontal page overflow at tested sizes.
-- Touch targets of at least 44 CSS pixels for standard controls.
-- Immediate pointer feedback when a control is pressed.
-- Long-press menu prevention on active game boards.
-- Sticky thumb controls for Number Grid, Falling Shapes, and Crate Trail.
-- Side-by-side boards and controls on short landscape phones.
-- Touch gestures for Falling Shapes, in addition to on-screen buttons.
-- Responsive game boards that use the available content width rather than overflowing the viewport.
-- A browser installation prompt where supported.
-- iPhone Add-to-Home-Screen instructions.
-- A standalone PWA manifest and offline service worker.
-- Original SVG game icons and a garden hero illustration.
+## Progressive Web App behavior
+
+- Android browsers can show the native install prompt when eligible.
+- iPhone and iPad users receive Safari **Add to Home Screen** instructions.
+- The manifest includes maskable icons and shortcuts to all four games.
+- The service worker caches the core app shell first and treats decorative generated art as optional, so one missing image cannot block installation.
+- Navigation uses a short network timeout with an offline fallback, while static assets use stale-while-revalidate caching.
+- Old Puzzle Garden caches are removed without deleting unrelated caches from the same origin.
 
 ## Run locally
 
-From the repository root, run:
+From the repository root:
 
 ```bash
 python -m http.server 8080
 ```
 
-Then open:
+Then open `http://localhost:8080`.
 
-```text
-http://localhost:8080
+Opening `index.html` directly can display the games, but PWA installation, service workers, and campaign fetching require HTTP on localhost or HTTPS in production.
+
+## Tests
+
+Install Pillow, then run the complete unit suite:
+
+```bash
+python -m pip install Pillow
+PYTHONPATH=tools python -m unittest discover -s tools -p "test_*.py" -v
 ```
 
-Opening `index.html` directly runs the games, but PWA installation and the service worker require HTTP on localhost or HTTPS on a deployed website.
+On Windows PowerShell:
 
-## Publish it
+```powershell
+$env:PYTHONPATH = "tools"
+python -m unittest discover -s tools -p "test_*.py" -v
+```
 
-Upload the repository root to a static HTTPS host. No build process or backend is required for this mobile version.
+Validate the generated-asset manifest without writing files:
 
-For GitHub Pages, configure the site to publish from the `main` branch root so `index.html` is served at `https://martybobo.github.io/phone-games/`. Suitable static hosts also include Cloudflare Pages, Netlify, or an ordinary HTTPS web server. Keep all paths and filenames together.
+```bash
+python tools/process_assets.py --check
+```
+
+## Asset pipeline
+
+Generated source sheets live in `assets/source/imagegen/`. To rebuild runtime art and PWA icons:
+
+```bash
+python tools/process_assets.py
+```
+
+The app reads optimized runtime assets from `assets/generated/`.
+
+## Publish with GitHub Pages
+
+Publish the repository from the `main` branch root. GitHub Pages serves `index.html` at:
+
+```text
+https://martybobo.github.io/phone-games/
+```
+
+After deploying a service-worker change, reopen the page once online so the browser can install the new cache. Installed copies receive the update on their next launch.
 
 ## Install on iPhone or iPad
 
-1. Open the published HTTPS website in Safari.
-2. Tap the Share button.
+1. Open the deployed site in Safari.
+2. Tap **Share**.
 3. Choose **Add to Home Screen**.
-4. Confirm the name and tap **Add**.
-
-The Home Screen icon opens Puzzle Garden in a standalone window. Visit the website once while online before testing offline launch.
+4. Tap **Add**.
 
 ## Install on Android
 
-1. Open the published HTTPS website in Chrome or another browser that supports PWA installation.
-2. Tap **Install app** when the prompt appears, or open the browser menu.
+1. Open the deployed site in Chrome or another PWA-capable browser.
+2. Use the in-app install button or the browser menu.
 3. Choose **Install app** or **Add to Home screen**.
 
-## Touch controls
-
-### Number Grid
-
-Tap a square, then tap a number. The number pad stays near the bottom of the screen on narrow phones. Pencil notes, hints, undo, reset, and mistake highlighting remain available.
-
-### Tile Pairs
-
-Tap one open tile, then tap its matching open tile. Blocked tiles are dimmed. The complete layered board scales to the available phone width.
-
-### Falling Shapes
-
-Use the large on-screen buttons or swipe on the game board:
-
-- Tap the board or swipe up to rotate.
-- Swipe left or right to move.
-- Swipe down to hard-drop.
-- The arrow and drop buttons provide an alternative for every gesture.
-
-### Crate Trail
-
-Tap a highlighted reachable tower, then tap an enabled direction. The direction pad stays near the bottom on narrow screens. In short landscape mode, the board and direction controls appear side by side.
-
-## Accessibility
-
-- Large-text control.
-- Sound on/off control.
-- Visible keyboard focus.
-- Screen-reader labels on interactive board elements.
-- Reduced-motion support through the operating-system preference.
-- State is not communicated by color alone.
-- The browser's normal pinch-to-zoom remains available.
-
-## File structure
+## Project structure
 
 ```text
 phone-games/
-|-- index.html
-|-- styles.css
-|-- app.js
-|-- campaign.json
-|-- manifest.webmanifest
-|-- sw.js
-|-- icon-192.png
-|-- icon-512.png
-|-- apple-touch-icon.png
-`-- assets/
-    |-- hero-garden.svg
-    |-- icons/
-    |-- textures/
-    `-- worlds/
+├── index.html
+├── styles.css
+├── app.js
+├── campaign.json
+├── manifest.webmanifest
+├── sw.js
+├── icon-192.png
+├── icon-512.png
+├── apple-touch-icon.png
+├── assets/
+│   ├── generated/
+│   └── source/imagegen/
+└── tools/
+    ├── process_assets.py
+    └── test_*.py
 ```
 
+## Storage limitation
 
-## Data and account limitation
-
-This mobile package preserves the current static architecture: progress and settings are stored in the browser on the device. It does not contain the separate server, database, username/password account system, shared leaderboard, or cross-device synchronization described in the larger full-stack expansion plan.
+This is intentionally a static application. Progress does not sync between browsers or devices, and clearing site data removes local progress. Accounts, shared leaderboards, and cloud saves require a separate backend.

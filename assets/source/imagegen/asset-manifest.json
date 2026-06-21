@@ -32,12 +32,7 @@
       "padding": 0.12,
       "size": [256, 256],
       "format": "png",
-      "outputs": [
-        "number-grid.png",
-        "tile-pairs.png",
-        "falling-shapes.png",
-        "crate-trail.png"
-      ]
+      "outputs": ["number-grid.png", "tile-pairs.png", "falling-shapes.png", "crate-trail.png"]
     },
     {
       "id": "worlds",
@@ -49,14 +44,7 @@
       "padding": 0,
       "size": [640, 360],
       "format": "webp",
-      "outputs": [
-        "seedling-meadow.webp",
-        "lantern-grove.webp",
-        "moonlit-pond.webp",
-        "crystal-conservatory.webp",
-        "cloud-orchard.webp",
-        "starlight-terrace.webp"
-      ]
+      "outputs": ["seedling-meadow.webp", "lantern-grove.webp", "moonlit-pond.webp", "crystal-conservatory.webp", "cloud-orchard.webp", "starlight-terrace.webp"]
     },
     {
       "id": "hero",
@@ -129,12 +117,7 @@
       "padding": 0.16,
       "size": [128, 128],
       "format": "png",
-      "outputs": [
-        "sparkle-burst.png",
-        "leafy-completion-badge.png",
-        "star-bloom.png",
-        "flower-confetti.png"
-      ]
+      "outputs": ["sparkle-burst.png", "leafy-completion-badge.png", "star-bloom.png", "flower-confetti.png"]
     }
   ]
 }

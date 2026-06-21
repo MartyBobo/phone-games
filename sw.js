@@ -1,10 +1,16 @@
-const CACHE_NAME = "puzzle-garden-mobile-v6-imagegen-assets";
-const GENERATED_ASSET_VERSION = "imagegen-v1";
+const CACHE_PREFIX = "puzzle-garden-";
+const CACHE_NAME = `${CACHE_PREFIX}mobile-v7`;
+const GENERATED_ASSET_VERSION = "mobile-v2";
+const OFFLINE_PAGE = "./index.html";
 
 function versionGeneratedAssetPath(path) {
   const separator = path.includes("?") ? "&" : "?";
   return `${path}${separator}v=${encodeURIComponent(GENERATED_ASSET_VERSION)}`;
 }
+
+const TILE_FACE_PATHS = Array.from({ length: 6 }, (_, worldIndex) =>
+  Array.from({ length: 8 }, (_, faceIndex) => `./assets/generated/tile-faces/w${worldIndex + 1}-f${faceIndex}.png`)
+).flat();
 
 const GENERATED_ASSET_PATHS = [
   "./assets/generated/hero-garden.webp",
@@ -23,84 +29,55 @@ const GENERATED_ASSET_PATHS = [
   "./assets/generated/ui/leafy-completion-badge.png",
   "./assets/generated/ui/star-bloom.png",
   "./assets/generated/ui/flower-confetti.png",
-  "./assets/generated/tile-faces/w1-f0.png",
-  "./assets/generated/tile-faces/w1-f1.png",
-  "./assets/generated/tile-faces/w1-f2.png",
-  "./assets/generated/tile-faces/w1-f3.png",
-  "./assets/generated/tile-faces/w1-f4.png",
-  "./assets/generated/tile-faces/w1-f5.png",
-  "./assets/generated/tile-faces/w1-f6.png",
-  "./assets/generated/tile-faces/w1-f7.png",
-  "./assets/generated/tile-faces/w2-f0.png",
-  "./assets/generated/tile-faces/w2-f1.png",
-  "./assets/generated/tile-faces/w2-f2.png",
-  "./assets/generated/tile-faces/w2-f3.png",
-  "./assets/generated/tile-faces/w2-f4.png",
-  "./assets/generated/tile-faces/w2-f5.png",
-  "./assets/generated/tile-faces/w2-f6.png",
-  "./assets/generated/tile-faces/w2-f7.png",
-  "./assets/generated/tile-faces/w3-f0.png",
-  "./assets/generated/tile-faces/w3-f1.png",
-  "./assets/generated/tile-faces/w3-f2.png",
-  "./assets/generated/tile-faces/w3-f3.png",
-  "./assets/generated/tile-faces/w3-f4.png",
-  "./assets/generated/tile-faces/w3-f5.png",
-  "./assets/generated/tile-faces/w3-f6.png",
-  "./assets/generated/tile-faces/w3-f7.png",
-  "./assets/generated/tile-faces/w4-f0.png",
-  "./assets/generated/tile-faces/w4-f1.png",
-  "./assets/generated/tile-faces/w4-f2.png",
-  "./assets/generated/tile-faces/w4-f3.png",
-  "./assets/generated/tile-faces/w4-f4.png",
-  "./assets/generated/tile-faces/w4-f5.png",
-  "./assets/generated/tile-faces/w4-f6.png",
-  "./assets/generated/tile-faces/w4-f7.png",
-  "./assets/generated/tile-faces/w5-f0.png",
-  "./assets/generated/tile-faces/w5-f1.png",
-  "./assets/generated/tile-faces/w5-f2.png",
-  "./assets/generated/tile-faces/w5-f3.png",
-  "./assets/generated/tile-faces/w5-f4.png",
-  "./assets/generated/tile-faces/w5-f5.png",
-  "./assets/generated/tile-faces/w5-f6.png",
-  "./assets/generated/tile-faces/w5-f7.png",
-  "./assets/generated/tile-faces/w6-f0.png",
-  "./assets/generated/tile-faces/w6-f1.png",
-  "./assets/generated/tile-faces/w6-f2.png",
-  "./assets/generated/tile-faces/w6-f3.png",
-  "./assets/generated/tile-faces/w6-f4.png",
-  "./assets/generated/tile-faces/w6-f5.png",
-  "./assets/generated/tile-faces/w6-f6.png",
-  "./assets/generated/tile-faces/w6-f7.png"
+  ...TILE_FACE_PATHS
 ];
 
-const APP_SHELL = [
+const CORE_ASSETS = [
   "./",
-  "./index.html",
+  OFFLINE_PAGE,
   "./404.html",
   "./styles.css",
+  "./styles.css?v=mobile-v2",
   "./app.js",
-  "./app.js?v=imagegen-v1",
+  "./app.js?v=mobile-v2",
   "./campaign.json",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",
-  "./apple-touch-icon.png",
-  ...GENERATED_ASSET_PATHS.map(versionGeneratedAssetPath)
+  "./apple-touch-icon.png"
 ];
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
+const OPTIONAL_ASSETS = GENERATED_ASSET_PATHS.map(versionGeneratedAssetPath);
+
+async function cacheOptionalAssets(cache) {
+  await Promise.allSettled(
+    OPTIONAL_ASSETS.map(async (path) => {
+      const response = await fetch(path, { cache: "reload" });
+      if (response.ok) await cache.put(path, response);
+    })
   );
+}
+
+self.addEventListener("install", (event) => {
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(CORE_ASSETS);
+    await cacheOptionalAssets(cache);
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)));
-    if (self.registration.navigationPreload) await self.registration.navigationPreload.enable();
+    await Promise.all(
+      keys
+        .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
+        .map((key) => caches.delete(key))
+    );
+    if (self.registration.navigationPreload) {
+      await self.registration.navigationPreload.enable();
+    }
     await self.clients.claim();
   })());
 });
@@ -109,8 +86,41 @@ self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
+function withTimeout(promise, milliseconds) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error("Network timeout")), milliseconds);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
+}
+
+async function networkFirst(request, preloadResponse) {
+  const cache = await caches.open(CACHE_NAME);
+  try {
+    const response = preloadResponse || await withTimeout(fetch(request), 3500);
+    if (response?.ok) await cache.put(request, response.clone());
+    return response;
+  } catch {
+    return (await cache.match(request, { ignoreSearch: true })) ||
+      (request.mode === "navigate" ? await cache.match(OFFLINE_PAGE) : undefined);
+  }
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request, { ignoreSearch: false }) || await cache.match(request, { ignoreSearch: true });
+  const update = fetch(request)
+    .then(async (response) => {
+      if (response.ok) await cache.put(request, response.clone());
+      return response;
+    })
+    .catch(() => undefined);
+  if (cached) return cached;
+  return (await update) || Response.error();
+}
+
 self.addEventListener("fetch", (event) => {
-  const request = event.request;
+  const { request } = event;
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
@@ -118,39 +128,18 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith((async () => {
-      try {
-        const preloaded = await event.preloadResponse;
-        const response = preloaded || await fetch(request);
-        if (response?.ok) {
-          const cache = await caches.open(CACHE_NAME);
-          await cache.put("./index.html", response.clone());
-        }
-        return response;
-      } catch {
-        return (await caches.match("./index.html")) || Response.error();
-      }
+      const preload = await event.preloadResponse;
+      return (await networkFirst(request, preload)) || Response.error();
     })());
     return;
   }
 
-  event.respondWith((async () => {
-    const cached = await caches.match(request);
-    const networkPromise = fetch(request)
-      .then(async (response) => {
-        if (response?.ok && response.type === "basic") {
-          const cache = await caches.open(CACHE_NAME);
-          await cache.put(request, response.clone());
-        }
-        return response;
-      })
-      .catch(() => null);
+  if (url.pathname.endsWith("/campaign.json")) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
 
-    if (cached) {
-      event.waitUntil(networkPromise);
-      return cached;
-    }
-
-    const network = await networkPromise;
-    return network || Response.error();
-  })());
+  if (["script", "style", "image", "font", "manifest"].includes(request.destination)) {
+    event.respondWith(staleWhileRevalidate(request));
+  }
 });

@@ -20,7 +20,7 @@
   let viewportFrame = 0;
 
   const GENERATED_ASSET_ROOT = "assets/generated";
-  const GENERATED_ASSET_VERSION = "imagegen-v1";
+  const GENERATED_ASSET_VERSION = "mobile-v2";
   const TILE_FACE_ASSET_RE = /^w[1-6]-f[0-7]$/;
 
   function versionGeneratedAssetPath(path) {
@@ -187,7 +187,6 @@
 
   installButton?.addEventListener("click", requestInstall);
   window.visualViewport?.addEventListener("resize", updateViewportMetrics);
-  window.visualViewport?.addEventListener("scroll", updateViewportMetrics);
   window.addEventListener("resize", updateViewportMetrics, { passive: true });
   window.addEventListener("orientationchange", updateViewportMetrics, { passive: true });
   updateViewportMetrics();
@@ -350,7 +349,9 @@
   }
 
   function campaignStats() {
-    const completed = campaignCompletedIds();
+    const stored = campaignCompletedIds();
+    const knownLevelIds = new Set(campaignCatalog.levels.map((level) => level.id));
+    const completed = new Set([...stored].filter((id) => knownLevelIds.has(id)));
     let points = 0;
     campaignCatalog.levels.forEach((level) => {
       if (completed.has(level.id)) points += campaignLevelPoints(level);
@@ -445,6 +446,7 @@
   }
 
   function setHeader(gameId = null) {
+    document.body.classList.toggle("game-active", Boolean(gameId));
     if (!gameId) {
       pageTitle.textContent = "Puzzle Garden";
       pageSubtitle.textContent = "Four calm games, one simple website";
@@ -467,7 +469,7 @@
     soundButton.setAttribute("aria-pressed", String(settings.sound));
     soundButton.setAttribute("aria-label", settings.sound ? "Turn sound off" : "Turn sound on");
     soundButton.title = settings.sound ? "Sound on" : "Sound off";
-    soundButton.textContent = settings.sound ? "♪" : "×♪";
+    soundButton.classList.toggle("sound-off", !settings.sound);
   }
 
   textSizeButton.addEventListener("click", () => {
@@ -523,24 +525,26 @@
 
   function renderCampaignUnavailable() {
     app.innerHTML = `
-      <section class="panel game-intro">
-        <div>
-          <h2>Puzzle Garden</h2>
-          <p>The campaign catalog could not be loaded. Start this folder with a local web server so the app can fetch campaign.json.</p>
-        </div>
-        <div class="status-pill"><span>Status</span><strong>Offline</strong></div>
+      <section class="panel empty-state" aria-labelledby="campaignErrorHeading">
+        <span class="empty-state-icon" aria-hidden="true">↻</span>
+        <h2 id="campaignErrorHeading">The garden did not load</h2>
+        <p>Check your connection and try again. Your saved progress is still on this device.</p>
+        <button id="retryCampaign" class="primary-button" type="button">Try again</button>
       </section>
     `;
+    app.querySelector("#retryCampaign")?.addEventListener("click", async () => {
+      renderCampaignLoading();
+      await loadCampaignCatalog();
+      route();
+    });
   }
 
   function renderCampaignLoading() {
     app.innerHTML = `
-      <section class="panel game-intro">
-        <div>
-          <h2>Puzzle Garden</h2>
-          <p>Loading the campaign catalog...</p>
-        </div>
-        <div class="status-pill"><span>Levels</span><strong>240</strong></div>
+      <section class="panel loading-state" aria-label="Loading Puzzle Garden">
+        <span class="loading-sprout" aria-hidden="true">✦</span>
+        <strong>Opening the garden…</strong>
+        <span>Preparing your levels and saved progress.</span>
       </section>
     `;
   }
@@ -552,76 +556,84 @@
 
     app.innerHTML = `
       <section class="home-hero" aria-labelledby="homeHeading">
-        <div>
-          <h2 id="homeHeading">Puzzle Garden campaign</h2>
-          <p>Explore six puzzle worlds with 240 catalog levels. Progress is saved on this device.</p>
+        <div class="home-hero-copy">
+          <span class="eyebrow">A calm place to think</span>
+          <h2 id="homeHeading">Grow through ${totalLevels} handcrafted puzzles.</h2>
+          <p>Choose a game, explore six worlds, and continue exactly where you stopped.</p>
         </div>
         <div class="hero-art hero-image" aria-hidden="true">
-          <img src="${escapeHTML(versionGeneratedAssetPath(`${GENERATED_ASSET_ROOT}/hero-garden.webp`))}" alt="" width="640" height="420">
+          <img src="${escapeHTML(versionGeneratedAssetPath(`${GENERATED_ASSET_ROOT}/hero-garden.webp`))}" alt="" width="640" height="420" fetchpriority="high">
+        </div>
+      </section>
+
+      <section class="home-section quick-play-section" aria-labelledby="quickPlayHeading">
+        <div class="section-heading">
+          <div><span class="eyebrow">Jump back in</span><h2 id="quickPlayHeading">Quick play</h2></div>
+          <p>Each game remembers your current level on this device.</p>
+        </div>
+        <div class="quick-play-grid">
+          ${Object.entries(GAME_META).map(([id, meta]) => `
+            <button class="quick-play-card" type="button" data-game="${id}">
+              <span class="quick-play-icon" aria-hidden="true"><img src="${escapeHTML(meta.art)}" alt="" width="72" height="72"></span>
+              <strong>${escapeHTML(meta.title)}</strong>
+            </button>
+          `).join("")}
         </div>
       </section>
 
       <aside class="home-note install-cta">
-        <span class="home-note-icon" aria-hidden="true">*</span>
+        <span class="home-note-icon" aria-hidden="true">↓</span>
         <div>
-          <strong>Works like an app</strong>
-          <span>Play with your finger, add the website to the Home Screen, and reopen it from its own icon.</span>
-          <span class="phone-tip">Touch controls - Safe-area support - Offline-ready</span>
+          <strong>Play full-screen from your Home Screen</strong>
+          <span>Install Puzzle Garden for an app-like window and reliable offline reopening.</span>
         </div>
         <button id="homeInstallButton" class="primary-button" type="button">Install app</button>
       </aside>
 
-      <section class="campaign-summary panel" aria-label="Campaign progress">
-        <div><span>Campaign</span><strong>${stats.completedCount}/${totalLevels}</strong></div>
-        <div><span>Points</span><strong>${stats.points}</strong></div>
-        <div><span>Progress</span><strong>${progress}%</strong></div>
-      </section>
+      <section class="home-section campaign-section" aria-labelledby="campaignHeading">
+        <div class="section-heading">
+          <div><span class="eyebrow">Your journey</span><h2 id="campaignHeading">Campaign</h2></div>
+          <strong class="campaign-percent">${progress}% complete</strong>
+        </div>
+        <div class="campaign-summary panel" aria-label="Campaign progress">
+          <div><span>Levels</span><strong>${stats.completedCount}/${totalLevels}</strong></div>
+          <div><span>Points</span><strong>${stats.points.toLocaleString()}</strong></div>
+          <div><span>Worlds</span><strong>${campaignCatalog.worlds.filter((world) => isWorldUnlocked(world, stats)).length}/${campaignCatalog.worlds.length}</strong></div>
+          <div class="campaign-progress" aria-hidden="true"><span style="width:${progress}%"></span></div>
+        </div>
 
-      <section class="world-grid" aria-label="Campaign worlds">
-        ${campaignCatalog.worlds.map((world) => {
-          const unlocked = isWorldUnlocked(world, stats);
-          const levels = campaignCatalog.levelsByWorld.get(world.id) || [];
-          const completed = levels.filter((level) => stats.completed.has(level.id)).length;
-          const palette = world.palette.length ? world.palette : ["#315f5a", "#9fc995", "#f5d58a", "#fff8e8"];
-          return `
-            <article class="world-card ${unlocked ? "" : "locked"}" style="--world-a:${escapeHTML(palette[0])};--world-b:${escapeHTML(palette[1])};--world-c:${escapeHTML(palette[2])};">
-              <img src="${escapeHTML(versionGeneratedAssetPath(world.art))}" alt="" width="320" height="180">
-              <div class="world-card-body">
-                <div class="world-card-heading">
-                  <div>
-                    <span>World ${world.order}</span>
-                    <h3>${escapeHTML(world.name)}</h3>
+        <div class="world-grid" aria-label="Campaign worlds">
+          ${campaignCatalog.worlds.map((world, worldIndex) => {
+            const unlocked = isWorldUnlocked(world, stats);
+            const levels = campaignCatalog.levelsByWorld.get(world.id) || [];
+            const completed = levels.filter((level) => stats.completed.has(level.id)).length;
+            const palette = world.palette.length ? world.palette : ["#315f5a", "#9fc995", "#f5d58a", "#fff8e8"];
+            return `
+              <article class="world-card ${unlocked ? "" : "locked"}" style="--world-a:${escapeHTML(palette[0])};--world-b:${escapeHTML(palette[1])};--world-c:${escapeHTML(palette[2])};">
+                <div class="world-image-wrap">
+                  <img src="${escapeHTML(versionGeneratedAssetPath(world.art))}" alt="" width="640" height="360" ${worldIndex === 0 ? 'fetchpriority="high"' : 'loading="lazy"'}>
+                  <span class="world-number">World ${world.order}</span>
+                </div>
+                <div class="world-card-body">
+                  <div class="world-card-heading">
+                    <div><h3>${escapeHTML(world.name)}</h3><p>${escapeHTML(world.description)}</p></div>
+                    <strong>${completed}/${levels.length}</strong>
                   </div>
-                  <strong>${completed}/${levels.length}</strong>
+                  ${unlocked ? `
+                    <div class="world-actions">
+                      ${GAME_ORDER.map((gameId) => `<button class="world-game-button" type="button" data-game="${gameId}" data-world="${escapeHTML(world.id)}">${escapeHTML(GAME_META[gameId].title)}</button>`).join("")}
+                    </div>
+                  ` : `<p class="world-lock"><span aria-hidden="true">🔒</span> Complete ${world.unlockCompletions} levels and earn ${world.unlockPoints.toLocaleString()} points to unlock.</p>`}
                 </div>
-                <p>${escapeHTML(world.description)}</p>
-                <div class="world-actions">
-                  ${GAME_ORDER.map((gameId) => `<button class="world-game-button" type="button" data-game="${gameId}" data-world="${escapeHTML(world.id)}" ${unlocked ? "" : "disabled"}>${escapeHTML(GAME_META[gameId].title)}</button>`).join("")}
-                </div>
-                ${unlocked ? "" : `<p class="world-lock">Unlocks at ${world.unlockCompletions} completions and ${world.unlockPoints} points.</p>`}
-              </div>
-            </article>
-          `;
-        }).join("")}
-      </section>
-
-      <section class="game-grid" aria-label="Puzzle games">
-        ${Object.entries(GAME_META).map(([id, meta]) => `
-          <button class="game-card" type="button" data-game="${id}">
-            <span class="game-card-icon" aria-hidden="true"><img src="${escapeHTML(meta.art)}" alt="" width="64" height="64"></span>
-            <span>
-              <h3>${escapeHTML(meta.title)}</h3>
-              <p>${escapeHTML(meta.description)}</p>
-            </span>
-            <span class="game-card-arrow" aria-hidden="true">&gt;</span>
-          </button>
-        `).join("")}
+              </article>
+            `;
+          }).join("")}
+        </div>
       </section>
     `;
 
     app.querySelectorAll("[data-game]").forEach((button) => {
       button.addEventListener("click", () => {
-        if (button.disabled) return;
         const worldId = button.dataset.world;
         if (worldId) {
           const firstLevel = campaignLevelsForGame(button.dataset.game).find((level) => level.worldId === worldId);
@@ -638,51 +650,6 @@
 
   function renderHome() {
     renderCampaignHome();
-    return;
-    app.innerHTML = `
-      <section class="home-hero" aria-labelledby="homeHeading">
-        <div>
-          <h2 id="homeHeading">A little garden for big puzzles.</h2>
-          <p>Choose a game, relax, and pick up exactly where you stopped. Everything is saved on this device.</p>
-        </div>
-        <div class="hero-art hero-image" aria-hidden="true">
-          <img src="${escapeHTML(versionGeneratedAssetPath(`${GENERATED_ASSET_ROOT}/hero-garden.webp`))}" alt="" width="640" height="420">
-        </div>
-      </section>
-
-      <aside class="home-note install-cta">
-        <span class="home-note-icon" aria-hidden="true">▣</span>
-        <div>
-          <strong>Works like an app</strong>
-          <span>Play with your finger, add the website to the Home Screen, and reopen it from its own icon.</span>
-          <span class="phone-tip">Touch controls · Safe-area support · Offline-ready</span>
-        </div>
-        <button id="homeInstallButton" class="primary-button" type="button">Install app</button>
-      </aside>
-
-      <section class="game-grid" aria-label="Puzzle games">
-        ${Object.entries(GAME_META).map(([id, meta]) => `
-          <button class="game-card" type="button" data-game="${id}">
-            <span class="game-card-icon" aria-hidden="true"><img src="${escapeHTML(meta.art)}" alt="" width="64" height="64"></span>
-            <span>
-              <h3>${meta.title}</h3>
-              <p>${meta.description}</p>
-            </span>
-            <span class="game-card-arrow" aria-hidden="true">›</span>
-          </button>
-        `).join("")}
-      </section>
-    `;
-
-    app.querySelectorAll("[data-game]").forEach((button) => {
-      button.addEventListener("click", () => {
-        playTone(480);
-        window.location.hash = button.dataset.game;
-      });
-    });
-
-    app.querySelector("#homeInstallButton")?.addEventListener("click", requestInstall);
-    updateInstallUi();
   }
 
   /* ------------------------------------------------------------------ */
@@ -808,24 +775,24 @@
     let completed = false;
 
     app.innerHTML = `
-      <section class="game-layout" aria-labelledby="sudokuHeading">
+      <section class="game-layout sudoku-game" aria-label="Number Grid">
         <div class="panel game-intro">
           <div>
             <h2 id="sudokuHeading">Number Grid</h2>
-            <p>Place 1–9 so each row, column, and 3×3 box contains every number once.</p>
+            <p>Fill every row, column, and outlined box without repeating a number.</p>
           </div>
           <div class="status-pill"><span>Difficulty</span><strong id="sudokuDifficulty"></strong></div>
         </div>
 
         <div class="panel toolbar" aria-label="Number Grid controls">
-          <div class="toolbar-group">
+          <div class="toolbar-group toolbar-primary">
             <label class="sr-only" for="sudokuPuzzleSelect">Choose a puzzle</label>
             <select id="sudokuPuzzleSelect" class="control">
               ${SUDOKU_PUZZLES.map((item) => `<option value="${item.id}" ${isLevelUnlocked(item) ? "" : "disabled"}>${escapeHTML(item.label)}</option>`).join("")}
             </select>
             <button id="sudokuRandom" class="secondary-button" type="button">New puzzle</button>
           </div>
-          <div class="toolbar-group">
+          <div class="toolbar-group toolbar-actions">
             <button id="sudokuUndo" class="secondary-button" type="button">Undo</button>
             <button id="sudokuHint" class="secondary-button" type="button">Hint</button>
             <button id="sudokuReset" class="danger-button" type="button">Reset</button>
@@ -1313,7 +1280,7 @@
     let hintTimer = 0;
 
     app.innerHTML = `
-      <section class="game-layout" aria-labelledby="tileHeading">
+      <section class="game-layout tile-game" aria-label="Tile Pairs">
         <div class="panel game-intro">
           <div>
             <h2 id="tileHeading">Tile Pairs</h2>
@@ -1323,12 +1290,14 @@
         </div>
 
         <div class="panel toolbar" aria-label="Tile Pairs controls">
-          <div class="toolbar-group">
+          <div class="toolbar-group toolbar-primary">
             <label class="sr-only" for="tileLevelSelect">Choose a level</label>
             <select id="tileLevelSelect" class="control">
               ${TILE_LEVELS.map((item) => `<option value="${item.id}" ${isLevelUnlocked(item) ? "" : "disabled"}>${escapeHTML(levelOptionLabel(item))}</option>`).join("")}
             </select>
             <button id="tileNew" class="primary-button" type="button">Reset level</button>
+          </div>
+          <div class="toolbar-group toolbar-actions tile-actions">
             <button id="tileHint" class="secondary-button" type="button">Hint</button>
             <button id="tileShuffle" class="secondary-button" type="button">Reshuffle</button>
           </div>
@@ -1684,7 +1653,7 @@
     let pointerStart = null;
 
     app.innerHTML = `
-      <section class="game-layout" aria-labelledby="fallingHeading">
+      <section class="game-layout falling-game" aria-label="Falling Shapes">
         <div class="panel game-intro">
           <div>
             <h2 id="fallingHeading">Falling Shapes</h2>
@@ -1694,7 +1663,7 @@
         </div>
 
         <div class="panel toolbar" aria-label="Falling Shapes level controls">
-          <div class="toolbar-group">
+          <div class="toolbar-group toolbar-primary falling-level-control">
             <label class="sr-only" for="fallingLevelSelect">Choose a level</label>
             <select id="fallingLevelSelect" class="control">
               ${FALLING_LEVELS.map((item) => `<option value="${item.id}" ${isLevelUnlocked(item) ? "" : "disabled"}>${escapeHTML(levelOptionLabel(item))}</option>`).join("")}
@@ -1708,7 +1677,11 @@
 
         <div class="falling-layout">
           <div class="panel falling-board-panel">
-            <canvas id="fallingCanvas" width="270" height="540" aria-label="Falling Shapes game board"></canvas>
+            <canvas id="fallingCanvas" width="270" height="540" aria-label="Falling Shapes game board. Tap to start or resume."></canvas>
+            <div class="compact-toolbar falling-session-controls" aria-label="Game session controls">
+              <button id="fallingNew" class="primary-button" type="button">Start game</button>
+              <button id="fallingPause" class="secondary-button" type="button" disabled>Pause</button>
+            </div>
             <div class="falling-controls" aria-label="Falling Shapes movement controls">
               <button class="falling-control" id="fallLeft" type="button" aria-label="Move left">←</button>
               <button class="falling-control" id="fallRotate" type="button" aria-label="Rotate clockwise">↻</button>
@@ -1733,10 +1706,6 @@
                 <div class="score-box"><span>Status</span><strong id="fallingStatus">Ready</strong></div>
                 <div class="score-box"><span>Best</span><strong id="fallingBest">0</strong></div>
                 <div class="score-box"><span>Progress</span><strong id="fallingProgress">0</strong></div>
-              </div>
-              <div class="compact-toolbar" style="margin-top: 12px;">
-                <button id="fallingNew" class="primary-button" type="button">Start game</button>
-                <button id="fallingPause" class="secondary-button" type="button" disabled>Pause</button>
               </div>
             </div>
 
@@ -1765,6 +1734,7 @@
     const statusElement = app.querySelector("#fallingStatus");
     const newButton = app.querySelector("#fallingNew");
     const pauseButton = app.querySelector("#fallingPause");
+    const movementButtons = [...app.querySelectorAll(".falling-control")];
 
     function nextShapeIndex() {
       if (bag.length === 0) bag = seededShuffle(FALLING_SHAPES.map((_, index) => index), random);
@@ -2089,6 +2059,7 @@
       pauseButton.disabled = !started || gameOver;
       pauseButton.textContent = !started ? "Pause" : running ? "Pause" : "Resume";
       newButton.textContent = started ? "New game" : "Start game";
+      movementButtons.forEach((button) => { button.disabled = !running; });
       drawNext();
     }
 
@@ -2220,11 +2191,17 @@
     }
 
     function onPointerUp(event) {
-      if (!pointerStart || !running) return;
+      if (!pointerStart) return;
       const dx = event.clientX - pointerStart.x;
       const dy = event.clientY - pointerStart.y;
       const distance = Math.hypot(dx, dy);
       pointerStart = null;
+
+      if (!running) {
+        if (!started || gameOver || missionComplete) startNewGame();
+        else togglePause();
+        return;
+      }
 
       if (distance < 16) {
         rotateCurrent();
@@ -2262,6 +2239,7 @@
     document.addEventListener("keydown", onKeyDown);
     canvas.addEventListener("pointerdown", onPointerDown);
     canvas.addEventListener("pointerup", onPointerUp);
+    canvas.addEventListener("pointercancel", () => { pointerStart = null; });
 
     function onVisibilityChange() {
       if (document.hidden && running) {
@@ -2517,7 +2495,7 @@
     const completedLevels = campaignCompletedIds();
 
     app.innerHTML = `
-      <section class="game-layout" aria-labelledby="crateHeading">
+      <section class="game-layout crate-game" aria-label="Crate Trail">
         <div class="panel game-intro">
           <div>
             <h2 id="crateHeading">Crate Trail</h2>
@@ -2527,12 +2505,12 @@
         </div>
 
         <div class="panel toolbar" aria-label="Crate Trail controls">
-          <div class="toolbar-group">
+          <div class="toolbar-group toolbar-primary">
             <label class="sr-only" for="crateLevelSelect">Choose a level</label>
             <select id="crateLevelSelect" class="control"></select>
             <button id="crateReset" class="danger-button" type="button">Reset</button>
           </div>
-          <div class="toolbar-group">
+          <div class="toolbar-group toolbar-actions">
             <button id="crateUndo" class="secondary-button" type="button">Undo</button>
             <button id="crateHint" class="secondary-button" type="button">Hint</button>
             <button id="crateNext" class="primary-button" type="button">Next level</button>
@@ -2582,7 +2560,6 @@
       CRATE_CAMPAIGN_LEVELS.forEach((item, index) => {
         const option = document.createElement("option");
         option.value = String(index);
-        option.textContent = `${index + 1}. ${item.name}${completedLevels.has(index) ? " ✓" : ""}`;
         option.disabled = !isLevelUnlocked(item);
         option.textContent = `${item.globalNumber}. ${item.world.name} - ${item.name}${completedLevels.has(item.id) ? " *" : ""}`;
         levelSelect.append(option);
@@ -2956,7 +2933,7 @@
   if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
     window.addEventListener("load", async () => {
       try {
-        const registration = await navigator.serviceWorker.register("./sw.js", { scope: "./" });
+        const registration = await navigator.serviceWorker.register("./sw.js", { scope: "./", updateViaCache: "none" });
         registration.addEventListener("updatefound", () => {
           const worker = registration.installing;
           worker?.addEventListener("statechange", () => {
